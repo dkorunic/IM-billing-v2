@@ -33,3 +33,7 @@ cmake-build-debug/
 ### Tokens ###
 credentials.json
 token.json
+
+
+### Shell wrappers ###
+*.sh
