@@ -1,6 +1,12 @@
 IM-billing-v2
 ===
 
+[![GitHub license](https://img.shields.io/github/license/dkorunic/IM-billing-v2.svg)](https://github.com/dkorunic/IM-billing-v2/blob/master/LICENSE.txt)
+[![GitHub release](https://img.shields.io/github/release/dkorunic/IM-billing-v2.svg)](https://github.com/dkorunic/IM-billing-v2/releases/latest)
+[![Build Status](https://img.shields.io/travis/dkorunic/IM-billing-v2.svg)](https://travis-ci.org/dkorunic/IM-billing-v2)
+[![codebeat badge](https://codebeat.co/badges/a5dc7a44-8e77-4362-b843-8d05ed0160f4)](https://codebeat.co/projects/github-com-dkorunic-IM-billing-v2-master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dkorunic/IM-billing-v2)](https://goreportcard.com/badge/github.com/dkorunic/IM-billing-v2)
+
 ## About
 
 IM-billing-v2 is a simple Google calendar based tracking/billing system. When you
