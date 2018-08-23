@@ -4,7 +4,7 @@ IM-billing-v2
 [![GitHub license](https://img.shields.io/github/license/dkorunic/IM-billing-v2.svg)](https://github.com/dkorunic/IM-billing-v2/blob/master/LICENSE.txt)
 [![GitHub release](https://img.shields.io/github/release/dkorunic/IM-billing-v2.svg)](https://github.com/dkorunic/IM-billing-v2/releases/latest)
 [![Build Status](https://img.shields.io/travis/dkorunic/IM-billing-v2.svg)](https://travis-ci.org/dkorunic/IM-billing-v2)
-[![codebeat badge](https://codebeat.co/badges/a5dc7a44-8e77-4362-b843-8d05ed0160f4)](https://codebeat.co/projects/github-com-dkorunic-IM-billing-v2-master)
+[![codebeat badge](https://codebeat.co/badges/97692d96-db24-40dc-8fda-a9b5be1eb09c)](https://codebeat.co/projects/github-com-dkorunic-im-billing-v2-master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dkorunic/IM-billing-v2)](https://goreportcard.com/badge/github.com/dkorunic/IM-billing-v2)
 
 ## About
