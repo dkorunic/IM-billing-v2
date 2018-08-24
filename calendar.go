@@ -26,12 +26,17 @@ import (
 
 	"sort"
 
+	"github.com/PuloV/ics-golang"
 	"google.golang.org/api/calendar/v3"
 )
 
 type workEvent struct {
-	workDesc   string
+	workDesc   *string
 	hoursTotal int
+}
+
+type holidayEvent struct {
+	holidayDesc *string
 }
 
 // Time format parse layout of "YYYY-MM-DD"
@@ -39,6 +44,12 @@ const dateLayout = "2006-01-02"
 
 // Default maximum number of Google API results
 const calendarMaxResults = 200
+
+// Country-local holiday calendar in ICS format
+const officeHolidayURL = "https://www.officeholidays.com/ics/ics_country_iso.php?tbl_country=%s"
+
+// Default timeout for geolocation (ifconfig.co) and ICS parsing (officeholidays.com)
+const icsParserTimeout = time.Second * 10
 
 // Get Google calendar ID out of symbolic calendar name
 func getCalendarID(srv *calendar.Service, calendarName *string) *string {
@@ -172,10 +183,11 @@ func parseCalendarEvent(desc, start, end *string, loc *time.Location, eventMap m
 	// Update calendar event map with either adding work hours or creating a new entry
 	if temp, ok := eventMap[dateKey]; ok {
 		temp.hoursTotal += hours
-		temp.workDesc = fmt.Sprintf("%s, %s", temp.workDesc, *desc)
+		tempDesc := fmt.Sprintf("%s, %s", *temp.workDesc, *desc)
+		temp.workDesc = &tempDesc
 		eventMap[dateKey] = temp
 	} else {
-		eventMap[dateKey] = workEvent{*desc, hours}
+		eventMap[dateKey] = workEvent{workDesc: desc, hoursTotal: hours}
 
 	}
 
@@ -187,29 +199,29 @@ func printMonthlyStats(eventMap map[string]workEvent) {
 	fmt.Printf("Listing work done on %v project from %v to %v\n", *calendarName,
 		startDateFinal.Format(dateLayout), endDateFinal.Format(dateLayout))
 
-	var keys []string
+	var eventKeys []string
 	var dayCount int
 
 	// Create temporary sorted slice for sorted map access
 	for k := range eventMap {
-		keys = append(keys, k)
+		eventKeys = append(eventKeys, k)
 		dayCount++
 	}
-	sort.Strings(keys)
+	sort.Strings(eventKeys)
 
 	var totalHours int
 
 	// Dash or classic output format
 	if *dashFlag {
 		fmt.Printf("%10s - Hr - Description\n", "Date")
-		for _, k := range keys {
-			fmt.Printf("%10s - %dh - %s\n", k, eventMap[k].hoursTotal, eventMap[k].workDesc)
+		for _, k := range eventKeys {
+			fmt.Printf("%10s - %dh - %s\n", k, eventMap[k].hoursTotal, *eventMap[k].workDesc)
 			totalHours += eventMap[k].hoursTotal
 		}
 	} else {
 		fmt.Printf("%10s\tHr\tDescription\n", "Date")
-		for _, k := range keys {
-			fmt.Printf("%10s\t%2d\t%s\n", k, eventMap[k].hoursTotal, eventMap[k].workDesc)
+		for _, k := range eventKeys {
+			fmt.Printf("%10s\t%2d\t%s\n", k, eventMap[k].hoursTotal, *eventMap[k].workDesc)
 			totalHours += eventMap[k].hoursTotal
 		}
 
@@ -217,4 +229,87 @@ func printMonthlyStats(eventMap map[string]workEvent) {
 
 	// Total cumulative statistics
 	fmt.Printf("\nTotal workhour sum for given period:\t\t%d hours\nTotal active days for given period:\t\t%d days\n", totalHours, dayCount)
+
+	// Attempt to identify event overlap with public holidays
+	holidayMap := parseHolidayEvents(eventMap)
+
+	var holidayKeys []string
+	for k := range holidayMap {
+		holidayKeys = append(holidayKeys, k)
+	}
+
+	// Display event overlap with holidays only if we have any results
+	if len(holidayKeys) > 0 {
+		sort.Strings(holidayKeys)
+
+		fmt.Printf("\nYou have calendar events on following public holidays:\n")
+		for _, k := range holidayKeys {
+			fmt.Printf("%10s\t%v\n", k, *holidayMap[k].holidayDesc)
+		}
+	}
+}
+
+// Do cheap geolocation (ifconfig.co), identify country ISO code and get holiday ICS for this country
+func parseHolidayEvents(eventMap map[string]workEvent) map[string]holidayEvent {
+	c1 := make(chan struct{}, 1)
+	defer close(c1)
+
+	holidayMap := make(map[string]holidayEvent)
+
+	go func() {
+		// Initialize GeoIP/ifconfig client
+		ifconfigClient, err := NewIfconfigClient()
+		if err != nil {
+			c1 <- struct{}{}
+			return
+		}
+
+		// Fetch and parse JSON from ifconfig
+		geoip, err := ifconfigClient.GetIfconfigResponse()
+		if err != nil {
+			c1 <- struct{}{}
+			return
+		}
+
+		countryCode := geoip.CountryISO
+
+		// Create ICS parsing channel to officeholidays.com
+		icsParser := ics.New()
+		icsInputChan := icsParser.GetInputChan()
+		icsInputChan <- fmt.Sprintf(officeHolidayURL, countryCode)
+		icsParser.Wait()
+
+		// Fetch all parsed holiday calendars
+		cal, err := icsParser.GetCalendars()
+		if err != nil {
+			c1 <- struct{}{}
+			return
+		}
+
+		// Extract all holiday events overlapping with regular calendar events
+		for _, calendar := range cal {
+			for _, event := range calendar.GetEvents() {
+				shortDate := event.GetStart().Format(dateLayout)
+
+				if _, ok := eventMap[shortDate]; ok {
+					// Use descriptions just up to first newline
+					longDesc := event.GetDescription()
+					i := strings.Index(longDesc, "\\")
+					shortDesc := longDesc[:i]
+
+					holidayMap[shortDate] = holidayEvent{holidayDesc: &shortDesc}
+				}
+			}
+		}
+
+		c1 <- struct{}{}
+	}()
+
+	// GeoIP/ifconfig and ICS parsing timeout handler
+	select {
+	case <-c1:
+	case <-time.After(icsParserTimeout):
+	}
+
+	return holidayMap
 }

@@ -35,7 +35,7 @@ var helpFlag, dashFlag *bool
 var startDateFinal, endDateFinal time.Time
 
 // Default API timeout
-const calendarTimeout = time.Second * 120
+const calendarAPITimeout = time.Second * 120
 
 // Initialize default module globals and argument defaults
 func init() {
@@ -75,6 +75,7 @@ func main() {
 	}
 
 	c1 := make(chan struct{}, 1)
+	defer close(c1)
 
 	// Fetch Calendar events and display them
 	go func() {
@@ -83,10 +84,10 @@ func main() {
 		c1 <- struct{}{}
 	}()
 
-	// API timeout handler: wait for calendarTimeout duration until erroring out
+	// API timeout handler: wait for calendarAPITimeout duration until erroring out
 	select {
 	case <-c1:
-	case <-time.After(calendarTimeout):
+	case <-time.After(calendarAPITimeout):
 		log.Fatal("Timeout fetching Google calendar API... Exiting")
 	}
 }
