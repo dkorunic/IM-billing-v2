@@ -1,4 +1,5 @@
-/*
+/**
+ * @license
  * Copyright (C) 2018  Dinko Korunic, InfoMAR
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -14,7 +15,6 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
- *
  */
 package main
 
@@ -36,7 +36,7 @@ const ifconfigURL = "https://ifconfig.co/json"
 // Default Ifconfig/GeoIP HTTP timeout
 const defaultIfconfigTimeout = 10 * time.Second
 
-// Ifconfig response structure
+// IfconfigResponse - Ifconfig response structure
 type IfconfigResponse struct {
 	IP         string      `json:"ip"`
 	IPdecimal  json.Number `json:"ip_decimal"`
@@ -46,13 +46,13 @@ type IfconfigResponse struct {
 	Hostname   string      `json:"hostname"`
 }
 
-// An Ifconfig API client that performs simple geolocation
+// IfconfigClient - an Ifconfig API client that performs simple geolocation
 type IfconfigClient struct {
 	httpClient *http.Client
 	URL        *url.URL
 }
 
-// Prepares  HTTP client structure for Ifconfig API request
+// NewIfconfigClient - prepares HTTP client structure for Ifconfig API request
 func NewIfconfigClient() (*IfconfigClient, error) {
 	ifconfigURL, err := url.Parse(ifconfigURL)
 	if err != nil {
@@ -63,7 +63,7 @@ func NewIfconfigClient() (*IfconfigClient, error) {
 	return c, nil
 }
 
-// Fetches Ifconfig API response from Ifconfig site from a public IP
+// GetIfconfigResponse - fetches Ifconfig API response from Ifconfig site from a public IP
 func (IfconfigClient *IfconfigClient) GetIfconfigResponse() (IfconfigResponse, error) {
 	req, err := http.NewRequest("GET", IfconfigClient.URL.String(), nil)
 	if err != nil {

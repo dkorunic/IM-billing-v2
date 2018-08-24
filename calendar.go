@@ -1,4 +1,5 @@
-/*
+/**
+ * @license
  * Copyright (C) 2018  Dinko Korunic, InfoMAR
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -14,7 +15,6 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
- *
  */
 package main
 
@@ -26,7 +26,6 @@ import (
 
 	"sort"
 
-	"github.com/PuloV/ics-golang"
 	"google.golang.org/api/calendar/v3"
 )
 
@@ -44,9 +43,6 @@ const dateLayout = "2006-01-02"
 
 // Default maximum number of Google API results
 const calendarMaxResults = 200
-
-// Country-local holiday calendar in ICS format
-const officeHolidayURL = "https://www.officeholidays.com/ics/ics_country_iso.php?tbl_country=%s"
 
 // Default timeout for geolocation (ifconfig.co) and ICS parsing (officeholidays.com)
 const icsParserTimeout = time.Second * 10
@@ -271,34 +267,27 @@ func parseHolidayEvents(eventMap map[string]workEvent) map[string]holidayEvent {
 			return
 		}
 
-		countryCode := geoip.CountryISO
+		countryCode := &geoip.CountryISO
 
-		// Create ICS parsing channel to officeholidays.com
-		icsParser := ics.New()
-		icsInputChan := icsParser.GetInputChan()
-		icsInputChan <- fmt.Sprintf(officeHolidayURL, countryCode)
-		icsParser.Wait()
+		icsClient, err := NewIcsClient(countryCode)
+		if err != nil {
+			c1 <- struct{}{}
+			return
+		}
 
-		// Fetch all parsed holiday calendars
-		cal, err := icsParser.GetCalendars()
+		cal, err := icsClient.GetIcsResponse()
 		if err != nil {
 			c1 <- struct{}{}
 			return
 		}
 
 		// Extract all holiday events overlapping with regular calendar events
-		for _, calendar := range cal {
-			for _, event := range calendar.GetEvents() {
-				shortDate := event.GetStart().Format(dateLayout)
+		for _, event := range cal {
+			shortDate := event.Start.Format(dateLayout)
+			tempSummary := event.Summary
 
-				if _, ok := eventMap[shortDate]; ok {
-					// Use descriptions just up to first newline
-					longDesc := event.GetDescription()
-					i := strings.Index(longDesc, "\\")
-					shortDesc := longDesc[:i]
-
-					holidayMap[shortDate] = holidayEvent{holidayDesc: &shortDesc}
-				}
+			if _, ok := eventMap[shortDate]; ok {
+				holidayMap[shortDate] = holidayEvent{holidayDesc: &tempSummary}
 			}
 		}
 
