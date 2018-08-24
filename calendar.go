@@ -253,7 +253,7 @@ func parseHolidayEvents(eventMap map[string]workEvent) map[string]holidayEvent {
 	holidayMap := make(map[string]holidayEvent)
 
 	go func() {
-		// Initialize GeoIP/ifconfig client
+		// Initialize GeoIP/ifconfig HTTP client
 		ifconfigClient, err := NewIfconfigClient()
 		if err != nil {
 			c1 <- struct{}{}
@@ -267,14 +267,21 @@ func parseHolidayEvents(eventMap map[string]workEvent) map[string]holidayEvent {
 			return
 		}
 
+		// Use ISO 3166-1 country code for ICS lookup
 		countryCode := &geoip.CountryISO
+		if *countryCode == "" {
+			c1 <- struct{}{}
+			return
+		}
 
+		// Initialize ICS HTTP client
 		icsClient, err := NewIcsClient(countryCode)
 		if err != nil {
 			c1 <- struct{}{}
 			return
 		}
 
+		// Fetch and parse ICS response
 		cal, err := icsClient.GetIcsResponse()
 		if err != nil {
 			c1 <- struct{}{}
