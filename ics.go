@@ -75,8 +75,8 @@ func (e *IcsEvents) ConsumeICal(c *goics.Calendar, err error) error {
 }
 
 // NewIcsClient - prepares HTTP client structure for ICS fetch/parse
-func NewIcsClient(countryCode *string) (*IcsClient, error) {
-	IcsURL, err := url.Parse(fmt.Sprintf(icsURL, *countryCode))
+func NewIcsClient(countryCode string) (*IcsClient, error) {
+	IcsURL, err := url.Parse(fmt.Sprintf(icsURL, countryCode))
 	if err != nil {
 		log.Fatal(err)
 	}

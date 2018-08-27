@@ -30,12 +30,12 @@ import (
 )
 
 type workEvent struct {
-	workDesc   *string
+	workDesc   string
 	hoursTotal int
 }
 
 type holidayEvent struct {
-	holidayDesc *string
+	holidayDesc string
 }
 
 // Time format parse layout of "YYYY-MM-DD"
@@ -47,12 +47,11 @@ const calendarMaxResults = 200
 // Default timeout for geolocation (ifconfig.co) and ICS parsing (officeholidays.com)
 const icsParserTimeout = time.Second * 10
 
-// Get Google calendar ID out of symbolic calendar name
-func getCalendarID(srv *calendar.Service, calendarName *string) *string {
+// getCalendarID gets Google calendar ID out of symbolic calendar name.
+func getCalendarID(srv *calendar.Service, calendarName *string) string {
 	// If the calendar name is not specified, use default (primary) calendar
 	if *calendarName == "" {
-		temp := "primary"
-		return &temp
+		return "primary"
 	}
 
 	// Get calendar listing (paginated) and try to match name
@@ -70,7 +69,7 @@ func getCalendarID(srv *calendar.Service, calendarName *string) *string {
 		// Match calendar name
 		for _, item := range listCal.Items {
 			if item.Summary == *calendarName {
-				return &item.Id
+				return item.Id
 			}
 		}
 
@@ -81,14 +80,16 @@ func getCalendarID(srv *calendar.Service, calendarName *string) *string {
 		}
 	}
 
-	log.Fatalf("Unable to find calendar ID for %q", *calendarName)
-	return nil
+	return ""
 }
 
-// Get all calendar events for specified calendar ID and date range
+// getCalendarEvents gets all calendar events for specified calendar ID and date range.
 func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]workEvent {
 	// Fetch calendar ID
 	calID := getCalendarID(srv, calendarName)
+	if calID == "" {
+		log.Fatalf("Unable to find calendar ID for %q", *calendarName)
+	}
 
 	// Allocate empty map structure corresponding to calendar events
 	eventMap := make(map[string]workEvent)
@@ -96,7 +97,7 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 	// Get all calendar events within specified date range (paginated)
 	nextPageToken := ""
 	for {
-		eventsCall := srv.Events.List(*calID).
+		eventsCall := srv.Events.List(calID).
 			ShowDeleted(false).
 			SingleEvents(true).
 			TimeMin(startDateFinal.Format(time.RFC3339)).
@@ -145,7 +146,7 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 			}
 
 			// Parse individual event and update calendar event map
-			eventMap = parseCalendarEvent(&desc, &start, &end, loc, eventMap)
+			eventMap = parseCalendarEvent(desc, start, end, loc, eventMap)
 		}
 
 		// Handle pagination
@@ -158,16 +159,16 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 	return eventMap
 }
 
-// Parse individual calendar events and return map with cumulative work hours per day and cumulative event descriptions
-func parseCalendarEvent(desc, start, end *string, loc *time.Location, eventMap map[string]workEvent) map[string]workEvent {
+// parseCalendarEvent parses individual calendar events and return map with cumulative work hours per day and cumulative event descriptions.
+func parseCalendarEvent(desc, start, end string, loc *time.Location, eventMap map[string]workEvent) map[string]workEvent {
 	// Parse event starting time in RFC3339 (recurring events do not comply)
-	startTime, err := time.ParseInLocation(time.RFC3339, *start, loc)
+	startTime, err := time.ParseInLocation(time.RFC3339, start, loc)
 	if err != nil {
 		return eventMap
 	}
 
 	// Parse event ending time in RFC3339 (recurring events do not comply)
-	endTime, err := time.ParseInLocation(time.RFC3339, *end, loc)
+	endTime, err := time.ParseInLocation(time.RFC3339, end, loc)
 	if err != nil {
 		return eventMap
 	}
@@ -179,8 +180,7 @@ func parseCalendarEvent(desc, start, end *string, loc *time.Location, eventMap m
 	// Update calendar event map with either adding work hours or creating a new entry
 	if temp, ok := eventMap[dateKey]; ok {
 		temp.hoursTotal += hours
-		tempDesc := fmt.Sprintf("%s, %s", *temp.workDesc, *desc)
-		temp.workDesc = &tempDesc
+		temp.workDesc = fmt.Sprintf("%s, %s", temp.workDesc, desc)
 		eventMap[dateKey] = temp
 	} else {
 		eventMap[dateKey] = workEvent{workDesc: desc, hoursTotal: hours}
@@ -190,7 +190,7 @@ func parseCalendarEvent(desc, start, end *string, loc *time.Location, eventMap m
 	return eventMap
 }
 
-// Display final monthly calendar statistics
+// printMonthlyStats displays final monthly calendar statistics.
 func printMonthlyStats(eventMap map[string]workEvent) {
 	fmt.Printf("Listing work done on %v project from %v to %v\n", *calendarName,
 		startDateFinal.Format(dateLayout), endDateFinal.Format(dateLayout))
@@ -211,13 +211,13 @@ func printMonthlyStats(eventMap map[string]workEvent) {
 	if *dashFlag {
 		fmt.Printf("%10s - Hr - Description\n", "Date")
 		for _, k := range eventKeys {
-			fmt.Printf("%10s - %dh - %s\n", k, eventMap[k].hoursTotal, *eventMap[k].workDesc)
+			fmt.Printf("%10s - %dh - %s\n", k, eventMap[k].hoursTotal, eventMap[k].workDesc)
 			totalHours += eventMap[k].hoursTotal
 		}
 	} else {
 		fmt.Printf("%10s\tHr\tDescription\n", "Date")
 		for _, k := range eventKeys {
-			fmt.Printf("%10s\t%2d\t%s\n", k, eventMap[k].hoursTotal, *eventMap[k].workDesc)
+			fmt.Printf("%10s\t%2d\t%s\n", k, eventMap[k].hoursTotal, eventMap[k].workDesc)
 			totalHours += eventMap[k].hoursTotal
 		}
 
@@ -240,12 +240,12 @@ func printMonthlyStats(eventMap map[string]workEvent) {
 
 		fmt.Printf("\nYou have calendar events on following public holidays:\n")
 		for _, k := range holidayKeys {
-			fmt.Printf("%10s\t%v\n", k, *holidayMap[k].holidayDesc)
+			fmt.Printf("%10s\t%v\n", k, holidayMap[k].holidayDesc)
 		}
 	}
 }
 
-// Do cheap geolocation (ifconfig.co), identify country ISO code and get holiday ICS for this country
+// parseHolidayEvents does cheap geolocation (ifconfig.co), identifies country ISO code and gets holiday ICS for this country.
 func parseHolidayEvents(eventMap map[string]workEvent) map[string]holidayEvent {
 	c1 := make(chan struct{}, 1)
 	defer close(c1)
@@ -261,21 +261,20 @@ func parseHolidayEvents(eventMap map[string]workEvent) map[string]holidayEvent {
 		}
 
 		// Fetch and parse JSON from ifconfig
-		geoip, err := ifconfigClient.GetIfconfigResponse()
+		geoIP, err := ifconfigClient.GetIfconfigResponse()
 		if err != nil {
 			c1 <- struct{}{}
 			return
 		}
 
 		// Use ISO 3166-1 country code for ICS lookup
-		countryCode := &geoip.CountryISO
-		if *countryCode == "" {
+		if geoIP.CountryISO == "" {
 			c1 <- struct{}{}
 			return
 		}
 
 		// Initialize ICS HTTP client
-		icsClient, err := NewIcsClient(countryCode)
+		icsClient, err := NewIcsClient(geoIP.CountryISO)
 		if err != nil {
 			c1 <- struct{}{}
 			return
@@ -291,10 +290,9 @@ func parseHolidayEvents(eventMap map[string]workEvent) map[string]holidayEvent {
 		// Extract all holiday events overlapping with regular calendar events
 		for _, event := range cal {
 			shortDate := event.Start.Format(dateLayout)
-			tempSummary := event.Summary
 
 			if _, ok := eventMap[shortDate]; ok {
-				holidayMap[shortDate] = holidayEvent{holidayDesc: &tempSummary}
+				holidayMap[shortDate] = holidayEvent{holidayDesc: event.Summary}
 			}
 		}
 
