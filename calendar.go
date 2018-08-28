@@ -29,25 +29,27 @@ import (
 	"google.golang.org/api/calendar/v3"
 )
 
+// workEvent holds individual calendar event with aggregate hourly total.
 type workEvent struct {
 	workDesc   string
 	hoursTotal int
 }
 
+// holidayEvent holds individual calendar holiday event.
 type holidayEvent struct {
 	holidayDesc string
 }
 
-// Time format parse layout of "YYYY-MM-DD"
+// dateLayout is a Time format parse layout of "YYYY-MM-DD"
 const dateLayout = "2006-01-02"
 
-// Default maximum number of Google API results
+// calendarMaxResults is a default maximum number of Google API results
 const calendarMaxResults = 200
 
-// Default timeout for geolocation (ifconfig.co) and ICS parsing (officeholidays.com)
+// icsParserTimeout is a default hard timeout for geolocation (ifconfig.co) and ICS parsing (officeholidays.com)
 const icsParserTimeout = time.Second * 10
 
-// getCalendarID gets Google calendar ID out of symbolic calendar name.
+// getCalendarID gets a Google calendar ID out of a symbolic calendar name.
 func getCalendarID(srv *calendar.Service, calendarName *string) string {
 	// If the calendar name is not specified, use default (primary) calendar
 	if *calendarName == "" {
@@ -83,7 +85,7 @@ func getCalendarID(srv *calendar.Service, calendarName *string) string {
 	return ""
 }
 
-// getCalendarEvents gets all calendar events for specified calendar ID and date range.
+// getCalendarEvents gets all calendar events for a calendar ID and a date range.
 func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]workEvent {
 	// Fetch calendar ID
 	calID := getCalendarID(srv, calendarName)
@@ -159,7 +161,7 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 	return eventMap
 }
 
-// parseCalendarEvent parses individual calendar events and return map with cumulative work hours per day and cumulative event descriptions.
+// parseCalendarEvent parses individual calendar events and returns map with cumulative event hours per day and concatenated event descriptions.
 func parseCalendarEvent(desc, start, end string, loc *time.Location, eventMap map[string]workEvent) map[string]workEvent {
 	// Parse event starting time in RFC3339 (recurring events do not comply)
 	startTime, err := time.ParseInLocation(time.RFC3339, start, loc)
@@ -245,7 +247,7 @@ func printMonthlyStats(eventMap map[string]workEvent) {
 	}
 }
 
-// parseHolidayEvents does cheap geolocation (ifconfig.co), identifies country ISO code and gets holiday ICS for this country.
+// parseHolidayEvents does public IP geolocation (ifconfig.co), identifies country ISO code and gets holiday ICS for this country.
 func parseHolidayEvents(eventMap map[string]workEvent) map[string]holidayEvent {
 	c1 := make(chan struct{}, 1)
 	defer close(c1)

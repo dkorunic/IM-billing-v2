@@ -30,28 +30,28 @@ import (
 	"github.com/jordic/goics"
 )
 
-// Country-local holiday calendar in ICS format
+// icsURL is a country-local holiday calendar in ICS format.
 const icsURL = "https://www.officeholidays.com/ics/ics_country_iso.php?tbl_country=%s"
 
-// Default ICS fetch HTTP timeout
+// defaultIcsTimeout is a default ICS fetch HTTP timeout.
 const defaultIcsTimeout = 10 * time.Second
 
-// IcsClient - an ICS HTTP client for remote fetching/parsing ICS calendar
+// IcsClient is an ICS HTTP client for remote fetching/parsing ICS calendar.
 type IcsClient struct {
 	httpClient *http.Client
 	URL        *url.URL
 }
 
-// IcsEvent - individual parsed ICS event
+// IcsEvent is an individual parsed ICS event for ICS decoder.
 type IcsEvent struct {
 	Start, End  time.Time
 	Id, Summary string
 }
 
-// IcsEvents - collection of ICS events
+// IcsEvents is a collection of parsed ICS events from ICS decoder.
 type IcsEvents []IcsEvent
 
-// ConsumeICal - consumes/parses ICS event into IcsEvent structure
+// ConsumeICal consumes/parses an individual ICS event into an IcsEvent structure.
 func (e *IcsEvents) ConsumeICal(c *goics.Calendar, err error) error {
 	for _, el := range c.Events {
 		node := el.Data
@@ -74,7 +74,7 @@ func (e *IcsEvents) ConsumeICal(c *goics.Calendar, err error) error {
 	return nil
 }
 
-// NewIcsClient - prepares HTTP client structure for ICS fetch/parse
+// NewIcsClient creates a HTTP client structure for ICS fetch/parse.
 func NewIcsClient(countryCode string) (*IcsClient, error) {
 	IcsURL, err := url.Parse(fmt.Sprintf(icsURL, countryCode))
 	if err != nil {
@@ -85,7 +85,7 @@ func NewIcsClient(countryCode string) (*IcsClient, error) {
 	return c, nil
 }
 
-// GetIcsResponse - fetches Ics API response from Ics site from a public IP
+// GetIcsResponse fetches a HTTP response from officeholldays site with country-local ICS as a body.
 func (IcsClient *IcsClient) GetIcsResponse() (IcsEvents, error) {
 	req, err := http.NewRequest("GET", IcsClient.URL.String(), nil)
 	if err != nil {

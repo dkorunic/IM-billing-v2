@@ -30,13 +30,13 @@ import (
 	"github.com/pquerna/ffjson/ffjson"
 )
 
-// Default Ifconfig GeoIP URL with JSOn response
+// ifconfigURL is a default GeoIP URL with JSON response.
 const ifconfigURL = "https://ifconfig.co/json"
 
-// Default Ifconfig/GeoIP HTTP timeout
+// defaultIfconfigTimeout is a default Ifconfig/GeoIP request timeout.
 const defaultIfconfigTimeout = 10 * time.Second
 
-// IfconfigResponse - Ifconfig response structure
+// IfconfigResponse is a structure for parsed ifconfig.co JSON response.
 type IfconfigResponse struct {
 	IP         string      `json:"ip"`
 	IPdecimal  json.Number `json:"ip_decimal"`
@@ -46,13 +46,13 @@ type IfconfigResponse struct {
 	Hostname   string      `json:"hostname"`
 }
 
-// IfconfigClient - an Ifconfig API client that performs simple geolocation
+// IfconfigClient is an Ifconfig client that performs simple geolocation.
 type IfconfigClient struct {
 	httpClient *http.Client
 	URL        *url.URL
 }
 
-// NewIfconfigClient - prepares HTTP client structure for Ifconfig API request
+// NewIfconfigClient prepares HTTP client structure for Ifconfig API request.
 func NewIfconfigClient() (*IfconfigClient, error) {
 	ifconfigURL, err := url.Parse(ifconfigURL)
 	if err != nil {
@@ -63,7 +63,7 @@ func NewIfconfigClient() (*IfconfigClient, error) {
 	return c, nil
 }
 
-// GetIfconfigResponse - fetches Ifconfig API response from Ifconfig site from a public IP
+// GetIfconfigResponse fetches a HTTP response with JSON body from ifconfig.co site and parses it.
 func (IfconfigClient *IfconfigClient) GetIfconfigResponse() (IfconfigResponse, error) {
 	req, err := http.NewRequest("GET", IfconfigClient.URL.String(), nil)
 	if err != nil {

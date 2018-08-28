@@ -34,10 +34,9 @@ var calendarName, startDate, endDate, searchString *string
 var helpFlag, dashFlag *bool
 var startDateFinal, endDateFinal time.Time
 
-// Default API timeout
+// calendarAPITimeout is the default API timeout.
 const calendarAPITimeout = time.Second * 120
 
-// Initialize default module globals and argument defaults
 func init() {
 	calendarName = getopt.StringLong("calendar", 'c', "", "calendar name")
 	startDate = getopt.StringLong("start", 's', "", "start date (YYYY-MM-DD)")
@@ -92,6 +91,7 @@ func main() {
 	}
 }
 
+// parseArgs parses program arguments via getopt and does minimal required sanity checking.
 func parseArgs() {
 	getopt.Parse()
 
@@ -108,7 +108,7 @@ func parseArgs() {
 	if *startDate != "" {
 		t, err := time.ParseInLocation(dateLayout, *startDate, loc)
 		if err != nil {
-			log.Fatal("Cannot parse start time", err)
+			log.Fatalf("Cannot parse start time: %v", err)
 		}
 		startDateFinal = t
 	}
@@ -117,8 +117,13 @@ func parseArgs() {
 	if *endDate != "" {
 		t, err := time.ParseInLocation(dateLayout, *endDate, loc)
 		if err != nil {
-			log.Fatal("Cannot parse end time", err)
+			log.Fatalf("Cannot parse end time: %v", err)
 		}
 		endDateFinal = t
+	}
+
+	// Check if dates are swapped
+	if endDateFinal.Sub(startDateFinal) < 0 {
+		log.Fatalf("End date (%v) is before start date (%v)\n", endDateFinal, startDateFinal)
 	}
 }
