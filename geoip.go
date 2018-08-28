@@ -75,7 +75,14 @@ func (IfconfigClient *IfconfigClient) GetIfconfigResponse() (IfconfigResponse, e
 	if err != nil {
 		return IfconfigResponse{}, err
 	}
-	defer resp.Body.Close()
+
+	// Defer body close() with error propagation
+	defer func() {
+		cerr := resp.Body.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
 
 	// Fetch whole body at once
 	body, err := ioutil.ReadAll(resp.Body)

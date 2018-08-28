@@ -97,7 +97,14 @@ func (IcsClient *IcsClient) GetIcsResponse() (IcsEvents, error) {
 	if err != nil {
 		return IcsEvents{}, err
 	}
-	defer resp.Body.Close()
+
+	// Defer body close() with error propagation
+	defer func() {
+		cerr := resp.Body.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
 
 	// Parse received ICS
 	d := goics.NewDecoder(resp.Body)
