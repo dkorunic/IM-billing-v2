@@ -73,19 +73,27 @@ func main() {
 		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
 
-	c1 := make(chan struct{}, 1)
-	defer close(c1)
+	chanCalendar := make(chan struct{}, 1)
+	chanHolidays := make(chan map[string]holidayEvent)
+	defer close(chanCalendar)
+	defer close(chanHolidays)
+
+	// Fetch Office holiday events
+	go func() {
+		chanHolidays <- getHolidayEvents()
+	}()
 
 	// Fetch Calendar events and display them
 	go func() {
 		eventMap := getCalendarEvents(srv, calendarName)
-		printMonthlyStats(eventMap)
-		c1 <- struct{}{}
+		holidayMap := <-chanHolidays
+		printMonthlyStats(eventMap, holidayMap)
+		chanCalendar <- struct{}{}
 	}()
 
 	// API timeout handler: wait for calendarAPITimeout duration until erroring out
 	select {
-	case <-c1:
+	case <-chanCalendar:
 	case <-time.After(calendarAPITimeout):
 		log.Fatal("Timeout fetching Google calendar API... Exiting")
 	}

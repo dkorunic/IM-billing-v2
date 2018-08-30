@@ -193,7 +193,7 @@ func parseCalendarEvent(desc, start, end string, loc *time.Location, eventMap ma
 }
 
 // printMonthlyStats displays final monthly calendar statistics.
-func printMonthlyStats(eventMap map[string]workEvent) {
+func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holidayEvent) {
 	fmt.Printf("Listing work done on %v project from %v to %v\n", *calendarName,
 		startDateFinal.Format(dateLayout), endDateFinal.Format(dateLayout))
 
@@ -229,11 +229,11 @@ func printMonthlyStats(eventMap map[string]workEvent) {
 	fmt.Printf("\nTotal workhour sum for given period:\t\t%d hours\nTotal active days for given period:\t\t%d days\n", totalHours, dayCount)
 
 	// Attempt to identify event overlap with public holidays
-	holidayMap := parseHolidayEvents(eventMap)
-
 	var holidayKeys []string
 	for k := range holidayMap {
-		holidayKeys = append(holidayKeys, k)
+		if _, ok := eventMap[k]; ok {
+			holidayKeys = append(holidayKeys, k)
+		}
 	}
 
 	// Display event overlap with holidays only if we have any results
@@ -247,8 +247,8 @@ func printMonthlyStats(eventMap map[string]workEvent) {
 	}
 }
 
-// parseHolidayEvents does public IP geolocation (ifconfig.co), identifies country ISO code and gets holiday ICS for this country.
-func parseHolidayEvents(eventMap map[string]workEvent) map[string]holidayEvent {
+// getHolidayEvents does public IP geolocation (ifconfig.co), identifies country ISO code and gets holiday ICS for this country.
+func getHolidayEvents() map[string]holidayEvent {
 	c1 := make(chan struct{}, 1)
 	defer close(c1)
 
@@ -289,13 +289,10 @@ func parseHolidayEvents(eventMap map[string]workEvent) map[string]holidayEvent {
 			return
 		}
 
-		// Extract all holiday events overlapping with regular calendar events
+		// Extract all holiday events
 		for _, event := range cal {
 			shortDate := event.Start.Format(dateLayout)
-
-			if _, ok := eventMap[shortDate]; ok {
-				holidayMap[shortDate] = holidayEvent{holidayDesc: event.Summary}
-			}
+			holidayMap[shortDate] = holidayEvent{holidayDesc: event.Summary}
 		}
 
 		c1 <- struct{}{}
