@@ -2,12 +2,12 @@
 
 
 [[projects]]
-  digest = "1:5c3894b2aa4d6bead0ceeea6831b305d62879c871780e7b76296ded1b004bc57"
+  digest = "1:4d6f036ea3fe636bcb2e89850bcdc62a771354e157cd51b8b22a2de8562bf663"
   name = "cloud.google.com/go"
   packages = ["compute/metadata"]
   pruneopts = "UT"
-  revision = "debcad1964693daf8ef4bc06292d7e828e075130"
-  version = "v0.31.0"
+  revision = "28a4bc8c44b3acbcc482cff0cdf7de29a4688b61"
+  version = "v0.35.1"
 
 [[projects]]
   digest = "1:97df918963298c287643883209a2c3f642e6593379f97ab400c2a2e219ab647d"
@@ -19,11 +19,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:08f5cb5bf2b0728435de662de675a7e53b62819e906ec182ab7af7ca3f23dd28"
+  digest = "1:2c73f0318e9e0f972a39ced70b2648f2764259938bb15ac9daed20f4d49da70f"
   name = "github.com/jordic/goics"
   packages = ["."]
   pruneopts = "UT"
-  revision = "9b54ce50f61d04ecfb12241377428edc87db08b6"
+  revision = "feb996c8e01f48a15f84459592b5d1993e12f0ec"
 
 [[projects]]
   branch = "master"
@@ -43,22 +43,22 @@
     "fflib/v1/internal",
   ]
   pruneopts = "UT"
-  revision = "af8b230fcd2007c7095168ca8ab94c68b60840c6"
+  revision = "e517b90714f7c0eabe6d2e570a5886ae077d6db6"
 
 [[projects]]
   branch = "master"
-  digest = "1:d6b719875cf8091fbab38527d81d34e71f4521b9ee9ccfbd4a32cff2ac5af96e"
+  digest = "1:f8b491a7c25030a895a0e579742d07136e6958e77ef2d46e769db8eec4e58fcd"
   name = "golang.org/x/net"
   packages = [
     "context",
     "context/ctxhttp",
   ]
   pruneopts = "UT"
-  revision = "9b4f9f5ad5197c79fd623a3638e70d8b26cef344"
+  revision = "d26f9f9a57f3fab6a695bec0d84433c2c50f8bbf"
 
 [[projects]]
   branch = "master"
-  digest = "1:faa25cb78cf9c8cec9345d4ed07322cdef6a8c968b3d0a6b6c3609067c7386eb"
+  digest = "1:511a6232760c10dcb1ebf1ab83ef0291e2baf801f203ca6314759c5458b73a6a"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
@@ -68,11 +68,11 @@
     "jwt",
   ]
   pruneopts = "UT"
-  revision = "9dcd33a902f40452422c2367fefcb95b54f9f8f8"
+  revision = "5dab4167f31cbd76b407f1486c86b40748bc5073"
 
 [[projects]]
   branch = "master"
-  digest = "1:bdf95f917585ee8beabe1906e758bfd8e66d1ed11737e04627d465503c282853"
+  digest = "1:ff2fe873aa1b1dea7d530fbe411b1c37ec22048d26d0652103a988a56de9f7f9"
   name = "google.golang.org/api"
   packages = [
     "calendar/v3",
@@ -81,10 +81,10 @@
     "googleapi/internal/uritemplates",
   ]
   pruneopts = "UT"
-  revision = "511bab8e55decfbe784cd2d1868fa5cda62dc6c1"
+  revision = "59f8eae6bc597bfd5d5b292134c4b19d8955ed8a"
 
 [[projects]]
-  digest = "1:193950893ea275f89ed92e5da11ed8fa1436872f755a9ea5d4afa83dc9d9c3a8"
+  digest = "1:fa026a5c59bd2df343ec4a3538e6288dcf4e2ec5281d743ae82c120affe6926a"
   name = "google.golang.org/appengine"
   packages = [
     ".",
@@ -99,8 +99,8 @@
     "urlfetch",
   ]
   pruneopts = "UT"
-  revision = "ae0ab99deb4dc413a2b4bd6c8bdd0eb67f1e4d06"
-  version = "v1.2.0"
+  revision = "e9657d882bb81064595ca3b56cbe2546bbabf7b1"
+  version = "v1.4.0"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -109,6 +109,7 @@
     "github.com/jordic/goics",
     "github.com/pborman/getopt/v2",
     "github.com/pquerna/ffjson/ffjson",
+    "github.com/pquerna/ffjson/fflib/v1",
     "golang.org/x/net/context",
     "golang.org/x/oauth2",
     "golang.org/x/oauth2/google",
