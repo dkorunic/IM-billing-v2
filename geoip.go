@@ -27,7 +27,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/pquerna/ffjson/ffjson"
+	"github.com/json-iterator/go"
 )
 
 // ifconfigURL is a default GeoIP URL with JSON response.
@@ -98,6 +98,7 @@ func (IfconfigClient *IfconfigClient) GetIfconfigResponse() (IfconfigResponse, e
 
 	// Parse received JSON
 	geoip := IfconfigResponse{}
-	err = ffjson.Unmarshal(body, &geoip)
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	err = json.Unmarshal(body, &geoip)
 	return geoip, err
 }
