@@ -16,9 +16,10 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
-package main
+package ics
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"net/url"
@@ -40,6 +41,7 @@ const defaultIcsTimeout = 10 * time.Second
 type IcsClient struct {
 	httpClient *http.Client
 	URL        *url.URL
+	ctx        context.Context
 }
 
 // IcsEvent is an individual parsed ICS event for ICS decoder.
@@ -76,18 +78,24 @@ func (e *IcsEvents) ConsumeICal(c *goics.Calendar, err error) error {
 
 // NewIcsClient creates a HTTP client structure for ICS fetch/parse.
 func NewIcsClient(countryCode string) (*IcsClient, error) {
+	ctx := context.Background()
+	return NewIcsClientWithContext(ctx, countryCode)
+}
+
+// NewIcsClientWithContext creates a HTTP client structure for ICS fetch/parse with ctx Context.
+func NewIcsClientWithContext(ctx context.Context, countryCode string) (*IcsClient, error) {
 	IcsURL, err := url.Parse(fmt.Sprintf(icsURL, countryCode))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	c := &IcsClient{httpClient: &http.Client{Timeout: defaultIcsTimeout}, URL: IcsURL}
+	c := &IcsClient{httpClient: &http.Client{Timeout: defaultIcsTimeout}, URL: IcsURL, ctx: ctx}
 	return c, nil
 }
 
 // GetIcsResponse fetches a HTTP response from officeholldays site with country-local ICS as a body.
 func (IcsClient *IcsClient) GetIcsResponse() (IcsEvents, error) {
-	req, err := http.NewRequest("GET", IcsClient.URL.String(), nil)
+	req, err := http.NewRequestWithContext(IcsClient.ctx, "GET", IcsClient.URL.String(), nil)
 	if err != nil {
 		return IcsEvents{}, err
 	}

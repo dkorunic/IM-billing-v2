@@ -19,6 +19,8 @@
 package main
 
 import (
+	"context"
+	"google.golang.org/api/option"
 	"io/ioutil"
 	"log"
 	"time"
@@ -31,11 +33,9 @@ import (
 )
 
 var calendarName, startDate, endDate, searchString *string
+var apiTimeout *int
 var helpFlag, dashFlag *bool
 var startDateFinal, endDateFinal time.Time
-
-// calendarAPITimeout is the default API timeout.
-const calendarAPITimeout = time.Second * 120
 
 func init() {
 	calendarName = getopt.StringLong("calendar", 'c', "", "calendar name")
@@ -44,6 +44,7 @@ func init() {
 	searchString = getopt.StringLong("search", 'x', "", "search string (substring match in event description)")
 	helpFlag = getopt.BoolLong("help", 'h', "display help")
 	dashFlag = getopt.BoolLong("dash", 'd', "use dashes when printing totals")
+	apiTimeout = getopt.IntLong("timeout", 't', 120, "Google Calendar API timeout (in seconds)")
 
 	// By default, set start date to the 1st of previous month and end date to the 1st of current month
 	t := time.Now()
@@ -53,6 +54,13 @@ func init() {
 
 func main() {
 	parseArgs()
+
+	ctx := context.Background()
+	ctxWithCancel, cancelFunction := context.WithCancel(ctx)
+
+	defer func() {
+		cancelFunction()
+	}()
 
 	// Load Calendar API credentials
 	b, err := ioutil.ReadFile("credentials.json")
@@ -68,7 +76,7 @@ func main() {
 	client := getClient(config)
 
 	// Initialize Calendar client
-	srv, err := calendar.New(client)
+	srv, err := calendar.NewService(ctxWithCancel, option.WithHTTPClient(client))
 	if err != nil {
 		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
@@ -80,7 +88,7 @@ func main() {
 
 	// Fetch Office holiday events
 	go func() {
-		chanHolidays <- getHolidayEvents()
+		chanHolidays <- getHolidayEvents(ctxWithCancel)
 	}()
 
 	// Fetch Calendar events and display them
@@ -91,11 +99,12 @@ func main() {
 		chanCalendar <- struct{}{}
 	}()
 
-	// API timeout handler: wait for calendarAPITimeout duration until erroring out
+	// API timeout handler: wait for *apiTimeout duration until erroring out
+	t := time.Duration(*apiTimeout) * time.Second
 	select {
 	case <-chanCalendar:
-	case <-time.After(calendarAPITimeout):
-		log.Fatal("Timeout fetching Google calendar API... Exiting")
+	case <-time.After(t):
+		log.Fatal("Timeout fetching Google calendar API... Exiting.")
 	}
 }
 

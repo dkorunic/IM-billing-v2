@@ -19,6 +19,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -26,6 +27,7 @@ import (
 
 	"sort"
 
+	"github.com/dkorunic/IM-billing-v2/ics"
 	"google.golang.org/api/calendar/v3"
 )
 
@@ -248,7 +250,7 @@ func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holi
 }
 
 // getHolidayEvents does public IP geolocation (ifconfig.co), identifies country ISO code and gets holiday ICS for this country.
-func getHolidayEvents() map[string]holidayEvent {
+func getHolidayEvents(ctx context.Context) map[string]holidayEvent {
 	c1 := make(chan struct{}, 1)
 	defer close(c1)
 
@@ -276,7 +278,7 @@ func getHolidayEvents() map[string]holidayEvent {
 		}
 
 		// Initialize ICS HTTP client
-		icsClient, err := NewIcsClient(geoIP.CountryISO)
+		icsClient, err := ics.NewIcsClientWithContext(ctx, geoIP.CountryISO)
 		if err != nil {
 			c1 <- struct{}{}
 			return
