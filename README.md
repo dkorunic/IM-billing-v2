@@ -15,7 +15,7 @@ entries belonging to a specific "sub"-calendar, you can easily print out
 those for a specific (and any) time frame, sum them and make a simple
 billing calculation.
 
-## REQUIREMENTS
+## Requirements
 
 * **credentials.json**: Google Calendar API credentials obtainable here: [https://developers.google.com/calendar/quickstart/go](https://developers.google.com/calendar/quickstart/go)
 
@@ -34,19 +34,21 @@ Download your preferred flavor from [the releases](https://github.com/dkorunic/I
 ### Using go get
 
 ```shell
-go get https://github.com/dkorunic/IM-billing-v2
+go get github.com/dkorunic/IM-billing-v2
 ```
 
 ## Usage
 
 ```shell
-Usage: IM-billing-v2 [-dh] [-c value] [-e value] [-s value] [-x value] [parameters ...]
+Usage: IM-billing-v2 [-dh] [-c value] [-e value] [-s value] [-t value] [-x value] [parameters ...]
  -c, --calendar=value
                     calendar name
  -d, --dash         use dashes when printing totals
  -e, --end=value    end date (YYYY-MM-DD)
  -h, --help         display help
  -s, --start=value  start date (YYYY-MM-DD)
+ -t, --timeout=value
+                    Google Calendar API timeout (in seconds) [120]
  -x, --search=value
                     search string (substring match in event description)
 ```
