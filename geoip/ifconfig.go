@@ -16,9 +16,10 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
-package main
+package geoip
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -33,11 +34,11 @@ import (
 // ifconfigURL is a default GeoIP URL with JSON response.
 const ifconfigURL = "https://ifconfig.co/json"
 
-// defaultIfconfigTimeout is a default Ifconfig/GeoIP request timeout.
-const defaultIfconfigTimeout = 10 * time.Second
+// DefaultTimeout is a default Ifconfig/GeoIP request timeout.
+const DefaultTimeout = 10 * time.Second
 
-// IfconfigResponse is a structure for parsed ifconfig.co JSON response.
-type IfconfigResponse struct {
+// Response is a structure for parsed ifconfig.co JSON response.
+type Response struct {
 	IP         string      `json:"ip"`
 	IPdecimal  json.Number `json:"ip_decimal"`
 	Country    string      `json:"country"`
@@ -46,34 +47,46 @@ type IfconfigResponse struct {
 	Hostname   string      `json:"hostname"`
 }
 
-// IfconfigClient is an Ifconfig client that performs simple geolocation.
-type IfconfigClient struct {
+// Client is an Ifconfig client that performs simple geolocation.
+type Client struct {
 	httpClient *http.Client
 	URL        *url.URL
+	ctx        context.Context
 }
 
-// NewIfconfigClient prepares HTTP client structure for Ifconfig API request.
-func NewIfconfigClient() (*IfconfigClient, error) {
+// NewClient prepares HTTP client structure for Ifconfig API request
+func NewClient() (*Client, error) {
+	ctx := context.Background()
+	return NewClientWithContext(ctx)
+}
+
+// NewClientWithContext prepares HTTP client structure for Ifconfig API request with ctx Context
+func NewClientWithContext(ctx context.Context) (*Client, error) {
 	ifconfigURL, err := url.Parse(ifconfigURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	c := &IfconfigClient{httpClient: &http.Client{Timeout: defaultIfconfigTimeout}, URL: ifconfigURL}
+	c := &Client{httpClient: &http.Client{Timeout: DefaultTimeout}, URL: ifconfigURL, ctx: ctx}
 	return c, nil
 }
 
-// GetIfconfigResponse fetches a HTTP response with JSON body from ifconfig.co site and parses it.
-func (IfconfigClient *IfconfigClient) GetIfconfigResponse() (IfconfigResponse, error) {
-	req, err := http.NewRequest("GET", IfconfigClient.URL.String(), nil)
+// GetResponse fetches a HTTP response with JSON body from ifconfig.co site and parses it.
+func (c *Client) GetResponse() (Response, error) {
+	req, err := http.NewRequestWithContext(c.ctx, "GET", c.URL.String(), nil)
 	if err != nil {
-		return IfconfigResponse{}, err
+		return Response{}, err
 	}
 
 	// Do the actual HTTP/HTTPS request
-	resp, err := IfconfigClient.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return IfconfigResponse{}, err
+		select {
+		case <-c.ctx.Done():
+			return Response{}, c.ctx.Err()
+		default:
+			return Response{}, err
+		}
 	}
 
 	// Defer body close() with error propagation
@@ -87,18 +100,18 @@ func (IfconfigClient *IfconfigClient) GetIfconfigResponse() (IfconfigResponse, e
 	// Fetch whole body at once
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return IfconfigResponse{}, err
+		return Response{}, err
 	}
 
 	// Handle HTTP errors
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		var err = fmt.Errorf(string(body))
-		return IfconfigResponse{}, err
+		err := fmt.Errorf(string(body))
+		return Response{}, err
 	}
 
 	// Parse received JSON
-	geoip := IfconfigResponse{}
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	geoip := Response{}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal(body, &geoip)
 	return geoip, err
 }

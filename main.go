@@ -20,12 +20,12 @@ package main
 
 import (
 	"context"
-	"google.golang.org/api/option"
 	"io/ioutil"
 	"log"
+	"os"
 	"time"
 
-	"os"
+	"google.golang.org/api/option"
 
 	"github.com/pborman/getopt/v2"
 	"golang.org/x/oauth2/google"

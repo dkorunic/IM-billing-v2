@@ -27,6 +27,7 @@ import (
 
 	"sort"
 
+	"github.com/dkorunic/IM-billing-v2/geoip"
 	"github.com/dkorunic/IM-billing-v2/ics"
 	"google.golang.org/api/calendar/v3"
 )
@@ -42,14 +43,11 @@ type holidayEvent struct {
 	holidayDesc string
 }
 
-// dateLayout is a Time format parse layout of "YYYY-MM-DD"
+// dateLayout is a Time format parse layout of "YYYY-MM-DD".
 const dateLayout = "2006-01-02"
 
-// calendarMaxResults is a default maximum number of Google API results
+// calendarMaxResults is a default maximum number of Google API results.
 const calendarMaxResults = 200
-
-// icsParserTimeout is a default hard timeout for geolocation (ifconfig.co) and ICS parsing (officeholidays.com)
-const icsParserTimeout = time.Second * 10
 
 // getCalendarID gets a Google calendar ID out of a symbolic calendar name.
 func getCalendarID(srv *calendar.Service, calendarName *string) string {
@@ -188,7 +186,6 @@ func parseCalendarEvent(desc, start, end string, loc *time.Location, eventMap ma
 		eventMap[dateKey] = temp
 	} else {
 		eventMap[dateKey] = workEvent{workDesc: desc, hoursTotal: hours}
-
 	}
 
 	return eventMap
@@ -251,43 +248,41 @@ func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holi
 
 // getHolidayEvents does public IP geolocation (ifconfig.co), identifies country ISO code and gets holiday ICS for this country.
 func getHolidayEvents(ctx context.Context) map[string]holidayEvent {
-	c1 := make(chan struct{}, 1)
-	defer close(c1)
-
 	holidayMap := make(map[string]holidayEvent)
 
-	go func() {
+	func() {
+		ctxGeoip, cancelGeoip := context.WithTimeout(ctx, geoip.DefaultTimeout)
+		defer cancelGeoip()
+
 		// Initialize GeoIP/ifconfig HTTP client
-		ifconfigClient, err := NewIfconfigClient()
+		ifconfigClient, err := geoip.NewClientWithContext(ctxGeoip)
 		if err != nil {
-			c1 <- struct{}{}
 			return
 		}
 
 		// Fetch and parse JSON from ifconfig
-		geoIP, err := ifconfigClient.GetIfconfigResponse()
+		geoIP, err := ifconfigClient.GetResponse()
 		if err != nil {
-			c1 <- struct{}{}
 			return
 		}
 
 		// Use ISO 3166-1 country code for ICS lookup
 		if geoIP.CountryISO == "" {
-			c1 <- struct{}{}
 			return
 		}
 
+		ctxIcs, cancelIcs := context.WithTimeout(ctx, ics.DefaultTimeout)
+		defer cancelIcs()
+
 		// Initialize ICS HTTP client
-		icsClient, err := ics.NewIcsClientWithContext(ctx, geoIP.CountryISO)
+		icsClient, err := ics.NewClientWithContext(ctxIcs, geoIP.CountryISO)
 		if err != nil {
-			c1 <- struct{}{}
 			return
 		}
 
 		// Fetch and parse ICS response
-		cal, err := icsClient.GetIcsResponse()
+		cal, err := icsClient.GetResponse()
 		if err != nil {
-			c1 <- struct{}{}
 			return
 		}
 
@@ -296,15 +291,7 @@ func getHolidayEvents(ctx context.Context) map[string]holidayEvent {
 			shortDate := event.Start.Format(dateLayout)
 			holidayMap[shortDate] = holidayEvent{holidayDesc: event.Summary}
 		}
-
-		c1 <- struct{}{}
 	}()
-
-	// GeoIP/ifconfig and ICS parsing timeout handler
-	select {
-	case <-c1:
-	case <-time.After(icsParserTimeout):
-	}
 
 	return holidayMap
 }

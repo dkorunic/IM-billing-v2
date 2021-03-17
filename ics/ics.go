@@ -34,27 +34,27 @@ import (
 // icsURL is a country-local holiday calendar in ICS format.
 const icsURL = "https://www.officeholidays.com/ics/ics_country_iso.php?tbl_country=%s"
 
-// defaultIcsTimeout is a default ICS fetch HTTP timeout.
-const defaultIcsTimeout = 10 * time.Second
+// DefaultTimeout is a default ICS fetch HTTP timeout.
+const DefaultTimeout = 10 * time.Second
 
-// IcsClient is an ICS HTTP client for remote fetching/parsing ICS calendar.
-type IcsClient struct {
+// Client is an ICS HTTP client for remote fetching/parsing ICS calendar.
+type Client struct {
 	httpClient *http.Client
 	URL        *url.URL
 	ctx        context.Context
 }
 
-// IcsEvent is an individual parsed ICS event for ICS decoder.
-type IcsEvent struct {
+// Event is an individual parsed ICS event for ICS decoder.
+type Event struct {
 	Start, End  time.Time
 	Id, Summary string
 }
 
-// IcsEvents is a collection of parsed ICS events from ICS decoder.
-type IcsEvents []IcsEvent
+// Events is a collection of parsed ICS events from ICS decoder.
+type Events []Event
 
-// ConsumeICal consumes/parses an individual ICS event into an IcsEvent structure.
-func (e *IcsEvents) ConsumeICal(c *goics.Calendar, err error) error {
+// ConsumeICal consumes/parses an individual ICS event into an Event structure.
+func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 	for _, el := range c.Events {
 		node := el.Data
 		dtstart, err := node["DTSTART"].DateDecode()
@@ -65,7 +65,7 @@ func (e *IcsEvents) ConsumeICal(c *goics.Calendar, err error) error {
 		if err != nil {
 			return err
 		}
-		d := IcsEvent{
+		d := Event{
 			Start:   dtstart,
 			End:     dtend,
 			Id:      node["UID"].Val,
@@ -76,34 +76,39 @@ func (e *IcsEvents) ConsumeICal(c *goics.Calendar, err error) error {
 	return nil
 }
 
-// NewIcsClient creates a HTTP client structure for ICS fetch/parse.
-func NewIcsClient(countryCode string) (*IcsClient, error) {
+// NewClient creates a HTTP client structure for ICS fetch/parse.
+func NewClient(countryCode string) (*Client, error) {
 	ctx := context.Background()
-	return NewIcsClientWithContext(ctx, countryCode)
+	return NewClientWithContext(ctx, countryCode)
 }
 
-// NewIcsClientWithContext creates a HTTP client structure for ICS fetch/parse with ctx Context.
-func NewIcsClientWithContext(ctx context.Context, countryCode string) (*IcsClient, error) {
+// NewClientWithContext creates a HTTP client structure for ICS fetch/parse with ctx Context.
+func NewClientWithContext(ctx context.Context, countryCode string) (*Client, error) {
 	IcsURL, err := url.Parse(fmt.Sprintf(icsURL, countryCode))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	c := &IcsClient{httpClient: &http.Client{Timeout: defaultIcsTimeout}, URL: IcsURL, ctx: ctx}
+	c := &Client{httpClient: &http.Client{Timeout: DefaultTimeout}, URL: IcsURL, ctx: ctx}
 	return c, nil
 }
 
-// GetIcsResponse fetches a HTTP response from officeholldays site with country-local ICS as a body.
-func (IcsClient *IcsClient) GetIcsResponse() (IcsEvents, error) {
-	req, err := http.NewRequestWithContext(IcsClient.ctx, "GET", IcsClient.URL.String(), nil)
+// GetResponse fetches a HTTP response from officeholldays site with country-local ICS as a body.
+func (c *Client) GetResponse() (Events, error) {
+	req, err := http.NewRequestWithContext(c.ctx, "GET", c.URL.String(), nil)
 	if err != nil {
-		return IcsEvents{}, err
+		return Events{}, err
 	}
 
 	// Do the actual HTTP/HTTPS request
-	resp, err := IcsClient.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return IcsEvents{}, err
+		select {
+		case <-c.ctx.Done():
+			return Events{}, c.ctx.Err()
+		default:
+			return Events{}, err
+		}
 	}
 
 	// Defer body close() with error propagation
@@ -116,10 +121,10 @@ func (IcsClient *IcsClient) GetIcsResponse() (IcsEvents, error) {
 
 	// Parse received ICS
 	d := goics.NewDecoder(resp.Body)
-	evs := IcsEvents{}
+	evs := Events{}
 	err = d.Decode(&evs)
 	if err != nil {
-		return IcsEvents{}, err
+		return Events{}, err
 	}
 
 	return evs, nil

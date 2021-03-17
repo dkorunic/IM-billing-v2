@@ -21,10 +21,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/json-iterator/go"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/json-iterator/go"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -76,7 +77,7 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 	}()
 
 	tok := &oauth2.Token{}
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.NewDecoder(f).Decode(tok)
 
 	return tok, err
