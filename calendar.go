@@ -161,7 +161,8 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 	return eventMap
 }
 
-// parseCalendarEvent parses individual calendar events and returns map with cumulative event hours per day and concatenated event descriptions.
+// parseCalendarEvent parses individual calendar events and returns map with cumulative event hours per day and
+// concatenated event descriptions.
 func parseCalendarEvent(desc, start, end string, loc *time.Location, eventMap map[string]workEvent) map[string]workEvent {
 	// Parse event starting time in RFC3339 (recurring events do not comply)
 	startTime, err := time.ParseInLocation(time.RFC3339, start, loc)
@@ -196,12 +197,12 @@ func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holi
 	fmt.Printf("Listing work done on %v project from %v to %v\n", *calendarName,
 		startDateFinal.Format(dateLayout), endDateFinal.Format(dateLayout))
 
-	var eventKeys []string
-	var dayCount int
+	eventKeys := make([]string, len(eventMap))
+	dayCount := 0
 
 	// Create temporary sorted slice for sorted map access
 	for k := range eventMap {
-		eventKeys = append(eventKeys, k)
+		eventKeys[dayCount] = k
 		dayCount++
 	}
 	sort.Strings(eventKeys)
@@ -221,7 +222,6 @@ func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holi
 			fmt.Printf("%10s\t%2d\t%s\n", k, eventMap[k].hoursTotal, eventMap[k].workDesc)
 			totalHours += eventMap[k].hoursTotal
 		}
-
 	}
 
 	// Total cumulative statistics

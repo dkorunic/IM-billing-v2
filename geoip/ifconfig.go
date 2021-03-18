@@ -31,8 +31,8 @@ import (
 	"github.com/json-iterator/go"
 )
 
-// ifconfigURL is a default GeoIP URL with JSON response.
-const ifconfigURL = "https://ifconfig.co/json"
+// URL is a default GeoIP URL with JSON response.
+const URL = "https://ifconfig.co/json"
 
 // DefaultTimeout is a default Ifconfig/GeoIP request timeout.
 const DefaultTimeout = 10 * time.Second
@@ -54,15 +54,16 @@ type Client struct {
 	ctx        context.Context
 }
 
-// NewClient prepares HTTP client structure for Ifconfig API request
+// NewClient prepares HTTP client structure for Ifconfig API request.
 func NewClient() (*Client, error) {
 	ctx := context.Background()
+
 	return NewClientWithContext(ctx)
 }
 
-// NewClientWithContext prepares HTTP client structure for Ifconfig API request with ctx Context
+// NewClientWithContext prepares HTTP client structure for Ifconfig API request with ctx Context.
 func NewClientWithContext(ctx context.Context) (*Client, error) {
-	ifconfigURL, err := url.Parse(ifconfigURL)
+	ifconfigURL, err := url.Parse(URL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -106,6 +107,7 @@ func (c *Client) GetResponse() (Response, error) {
 	// Handle HTTP errors
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf(string(body))
+
 		return Response{}, err
 	}
 
