@@ -22,10 +22,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
-
-	"sort"
 
 	"github.com/dkorunic/IM-billing-v2/geoip"
 	"github.com/dkorunic/IM-billing-v2/ics"

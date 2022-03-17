@@ -20,13 +20,11 @@ package ics
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
-
 	"time"
-
-	"fmt"
 
 	"github.com/jordic/goics"
 )

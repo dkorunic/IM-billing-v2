@@ -32,10 +32,12 @@ import (
 	"google.golang.org/api/calendar/v3"
 )
 
-var calendarName, startDate, endDate, searchString *string
-var apiTimeout *int
-var helpFlag, dashFlag *bool
-var startDateFinal, endDateFinal time.Time
+var (
+	calendarName, startDate, endDate, searchString *string
+	apiTimeout                                     *int
+	helpFlag, dashFlag                             *bool
+	startDateFinal, endDateFinal                   time.Time
+)
 
 func init() {
 	calendarName = getopt.StringLong("calendar", 'c', "", "calendar name")
