@@ -9,7 +9,7 @@ require (
 	github.com/pborman/getopt/v2 v2.1.0
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	golang.org/x/oauth2 v0.0.0-20220309155454-6242fa91716a
-	golang.org/x/sys v0.0.0-20220317061510-51cd9980dadf // indirect
+	golang.org/x/sys v0.0.0-20220318055525-2edf467146b5 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/api v0.73.0
 	google.golang.org/genproto v0.0.0-20220317150908-0efb43f6373e // indirect
