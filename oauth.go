@@ -22,13 +22,26 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"time"
+
+	"github.com/pkg/browser"
 
 	"github.com/json-iterator/go"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
+
+	uuid "github.com/satori/go.uuid"
+)
+
+const (
+	AuthTimeout    = 90 * time.Second
+	AuthListenAddr = "127.0.0.1"
+	AuthListenPort = "9999"
+	AuthScheme     = "http://"
 )
 
 // getClient retrieves a token, saves the token, then returns the generated client.
@@ -45,18 +58,53 @@ func getClient(config *oauth2.Config) *http.Client {
 
 // getTokenFromWeb requests a token from the web, then returns the retrieved token.
 func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser then type the "+
-		"authorization code: \n%v\n", authURL)
+	authReqState := uuid.NewV4().String()
+	tokChan := make(chan string, 1)
+	authListenHost := net.JoinHostPort(AuthListenAddr, AuthListenPort)
+	config.RedirectURL = AuthScheme + authListenHost
+
+	s := http.Server{Addr: authListenHost}
+	defer s.Close()
+
+	s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if actualState := r.URL.Query().Get("state"); actualState != authReqState {
+			http.Error(w, "Invalid authentication state", http.StatusUnauthorized)
+			return
+		}
+
+		tokChan <- r.URL.Query().Get("code")
+		close(tokChan)
+		_, _ = w.Write([]byte("Authentication complete, you can close this window."))
+		w.(http.Flusher).Flush()
+	})
+
+	go func() {
+		err := s.ListenAndServe()
+		if err != http.ErrServerClosed {
+			log.Fatalf("Error starting Web server: %v", err)
+		}
+	}()
+
+	authCodeURL := config.AuthCodeURL(authReqState, oauth2.AccessTypeOffline)
+	fmt.Printf("Opening auth URL through system browser: %v\n", authCodeURL)
+	if err := browser.OpenURL(authCodeURL); err != nil {
+		log.Fatalf("Unable to open system browser: %v", err)
+	}
 
 	var authCode string
-	if _, err := fmt.Scan(&authCode); err != nil {
-		log.Fatalf("Unable to read authorization code: %v", err)
+	ticker := time.NewTimer(AuthTimeout)
+
+	select {
+	case authCode = <-tokChan:
+		ticker.Stop()
+		break
+	case <-ticker.C:
+		log.Fatal("Timeout while waiting for authentication to finish")
 	}
 
 	tok, err := config.Exchange(context.Background(), authCode)
 	if err != nil {
-		log.Fatalf("Unable to retrieve token from web: %v", err)
+		log.Fatalf("Unable to retrieve token from Web: %v", err)
 	}
 
 	return tok
