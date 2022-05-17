@@ -25,7 +25,10 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
+
+	"github.com/phayes/freeport"
 
 	"github.com/pkg/browser"
 
@@ -40,7 +43,6 @@ import (
 const (
 	AuthTimeout    = 90 * time.Second
 	AuthListenAddr = "127.0.0.1"
-	AuthListenPort = "9999"
 	AuthScheme     = "http://"
 )
 
@@ -58,14 +60,24 @@ func getClient(config *oauth2.Config) *http.Client {
 
 // getTokenFromWeb requests a token from the web, then returns the retrieved token.
 func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+	// random UUID as a state
 	authReqState := uuid.NewV4().String()
 	tokChan := make(chan string, 1)
-	authListenHost := net.JoinHostPort(AuthListenAddr, AuthListenPort)
+
+	// get a free random port
+	authListenPort, err := freeport.GetFreePort()
+	if err != nil {
+		log.Fatalf("Unable to get a free port: %v", err)
+	}
+	// redirect uri listener for auth callback
+	authListenHost := net.JoinHostPort(AuthListenAddr, strconv.Itoa(authListenPort))
+	// oauth config auth redirect uri
 	config.RedirectURL = AuthScheme + authListenHost
 
 	s := http.Server{Addr: authListenHost}
 	defer s.Close()
 
+	// oauth callback handler
 	s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if actualState := r.URL.Query().Get("state"); actualState != authReqState {
 			http.Error(w, "Invalid authentication state", http.StatusUnauthorized)
@@ -78,6 +90,7 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 		w.(http.Flusher).Flush()
 	})
 
+	// oauth callback server
 	go func() {
 		err := s.ListenAndServe()
 		if err != http.ErrServerClosed {
@@ -85,6 +98,7 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 		}
 	}()
 
+	// oauth dialog through system browser
 	authCodeURL := config.AuthCodeURL(authReqState, oauth2.AccessTypeOffline)
 	fmt.Printf("Opening auth URL through system browser: %v\n", authCodeURL)
 	if err := browser.OpenURL(authCodeURL); err != nil {

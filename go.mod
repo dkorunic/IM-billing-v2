@@ -16,6 +16,7 @@ require (
 )
 
 require (
+	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/satori/go.uuid v1.2.0
 )
