@@ -22,13 +22,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // URL is a default GeoIP URL with JSON response.
@@ -99,7 +99,7 @@ func (c *Client) GetResponse() (Response, error) {
 	}()
 
 	// Fetch whole body at once
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return Response{}, err
 	}
