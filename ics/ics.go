@@ -71,6 +71,7 @@ func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 		}
 		*e = append(*e, d)
 	}
+
 	return nil
 }
 
@@ -89,12 +90,13 @@ func NewClientWithContext(ctx context.Context, countryCode string) (*Client, err
 	}
 
 	c := &Client{httpClient: &http.Client{Timeout: DefaultTimeout}, URL: IcsURL, ctx: ctx}
+
 	return c, nil
 }
 
 // GetResponse fetches a HTTP response from officeholldays site with country-local ICS as a body.
 func (c *Client) GetResponse() (Events, error) {
-	req, err := http.NewRequestWithContext(c.ctx, "GET", c.URL.String(), nil)
+	req, err := http.NewRequestWithContext(c.ctx, http.MethodGet, c.URL.String(), nil)
 	if err != nil {
 		return Events{}, err
 	}

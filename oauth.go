@@ -20,6 +20,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -74,26 +75,34 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	// oauth config auth redirect uri
 	config.RedirectURL = AuthScheme + authListenHost
 
-	s := http.Server{Addr: authListenHost}
+	s := http.Server{
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      5 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
+		Addr:              authListenHost,
+	}
 	defer s.Close()
 
 	// oauth callback handler
 	s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if actualState := r.URL.Query().Get("state"); actualState != authReqState {
 			http.Error(w, "Invalid authentication state", http.StatusUnauthorized)
+
 			return
 		}
 
 		tokChan <- r.URL.Query().Get("code")
 		close(tokChan)
 		_, _ = w.Write([]byte("Authentication complete, you can close this window."))
-		w.(http.Flusher).Flush()
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
 	})
 
 	// oauth callback server
 	go func() {
-		err := s.ListenAndServe()
-		if err != http.ErrServerClosed {
+		if err := s.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("Error starting Web server: %v", err)
 		}
 	}()
@@ -111,6 +120,7 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	select {
 	case authCode = <-tokChan:
 		ticker.Stop()
+
 		break
 	case <-ticker.C:
 		log.Fatal("Timeout while waiting for authentication to finish")

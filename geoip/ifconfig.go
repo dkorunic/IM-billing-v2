@@ -69,12 +69,13 @@ func NewClientWithContext(ctx context.Context) (*Client, error) {
 	}
 
 	c := &Client{httpClient: &http.Client{Timeout: DefaultTimeout}, URL: ifconfigURL, ctx: ctx}
+
 	return c, nil
 }
 
 // GetResponse fetches a HTTP response with JSON body from ifconfig.co site and parses it.
 func (c *Client) GetResponse() (Response, error) {
-	req, err := http.NewRequestWithContext(c.ctx, "GET", c.URL.String(), nil)
+	req, err := http.NewRequestWithContext(c.ctx, http.MethodGet, c.URL.String(), nil)
 	if err != nil {
 		return Response{}, err
 	}
@@ -115,5 +116,6 @@ func (c *Client) GetResponse() (Response, error) {
 	geoip := Response{}
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal(body, &geoip)
+
 	return geoip, err
 }

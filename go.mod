@@ -11,8 +11,8 @@ require (
 	golang.org/x/oauth2 v0.1.0
 	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
-	google.golang.org/api v0.100.0
-	google.golang.org/genproto v0.0.0-20221024183307-1bc688fe9f3e // indirect
+	google.golang.org/api v0.101.0
+	google.golang.org/genproto v0.0.0-20221027153422-115e99e71e1c // indirect
 )
 
 require (
@@ -22,7 +22,8 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute v1.10.0 // indirect
+	cloud.google.com/go/compute v1.12.1 // indirect
+	cloud.google.com/go/compute/metadata v0.2.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.0 // indirect
