@@ -1,5 +1,4 @@
-IM-billing-v2
-===
+# IM-billing-v2
 
 [![GitHub license](https://img.shields.io/github/license/dkorunic/IM-billing-v2.svg)](https://github.com/dkorunic/IM-billing-v2/blob/master/LICENSE.txt)
 [![GitHub release](https://img.shields.io/github/release/dkorunic/IM-billing-v2.svg)](https://github.com/dkorunic/IM-billing-v2/releases/latest)
@@ -17,11 +16,11 @@ billing calculation.
 
 ## Requirements
 
-* **credentials.json**: Google Calendar API credentials obtainable here: [https://developers.google.com/calendar/quickstart/go](https://developers.google.com/calendar/quickstart/go)
+- **credentials.json**: Google Calendar API credentials obtainable here: [https://developers.google.com/calendar/quickstart/go](https://developers.google.com/calendar/quickstart/go)
 
 ## API
 
-* Google Calendar API: [https://developers.google.com/calendar/v3/reference/](https://developers.google.com/calendar/v3/reference/)
+- Google Calendar API: [https://developers.google.com/calendar/v3/reference/](https://developers.google.com/calendar/v3/reference/)
 
 ## Installation
 
@@ -34,7 +33,7 @@ Download your preferred flavor from [the releases](https://github.com/dkorunic/I
 ### Using go get
 
 ```shell
-go get github.com/dkorunic/IM-billing-v2
+go install github.com/dkorunic/IM-billing-v2@latest
 ```
 
 ## Usage
@@ -58,4 +57,3 @@ Typical use example to fetch calendar items in your primary calendar from 01/01/
 ```shell
 ./IM-billing-v2 --search CLIENT: --start 2017-01-01 --end 2018-08-01
 ```
-
