@@ -33,12 +33,12 @@ import (
 
 	"github.com/pkg/browser"
 
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/gofrs/uuid"
 )
 
 const (
@@ -62,7 +62,11 @@ func getClient(config *oauth2.Config) *http.Client {
 // getTokenFromWeb requests a token from the web, then returns the retrieved token.
 func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	// random UUID as a state
-	authReqState := uuid.NewV4().String()
+	authReqState, err := uuid.NewV7()
+	if err != nil {
+		log.Fatal("Unable to generate UUID V4: %v", err)
+	}
+
 	tokChan := make(chan string, 1)
 
 	// get a free random port
@@ -86,7 +90,7 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 
 	// oauth callback handler
 	s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if actualState := r.URL.Query().Get("state"); actualState != authReqState {
+		if actualState := r.URL.Query().Get("state"); actualState != authReqState.String() {
 			http.Error(w, "Invalid authentication state", http.StatusUnauthorized)
 
 			return
@@ -108,7 +112,7 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	}()
 
 	// oauth dialog through system browser
-	authCodeURL := config.AuthCodeURL(authReqState, oauth2.AccessTypeOffline)
+	authCodeURL := config.AuthCodeURL(authReqState.String(), oauth2.AccessTypeOffline)
 	fmt.Printf("Opening auth URL through system browser: %v\n", authCodeURL)
 	if err := browser.OpenURL(authCodeURL); err != nil {
 		log.Fatalf("Unable to open system browser: %v", err)
