@@ -55,8 +55,9 @@ func getCalendarID(srv *calendar.Service, calendarName *string) string {
 		return "primary"
 	}
 
-	// Get calendar listing (paginated) and try to match name
 	nextPageToken := ""
+
+	// Get calendar listing (paginated) and try to match name
 	for {
 		calendarsCall := srv.CalendarList.List().
 			MaxResults(calendarMaxResults).
@@ -95,8 +96,9 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 	// Allocate empty map structure corresponding to calendar events
 	eventMap := make(map[string]workEvent)
 
-	// Get all calendar events within specified date range (paginated)
 	nextPageToken := ""
+
+	// Get all calendar events within specified date range (paginated)
 	for {
 		eventsCall := srv.Events.List(calID).
 			ShowDeleted(false).
@@ -204,6 +206,7 @@ func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holi
 		eventKeys[dayCount] = k
 		dayCount++
 	}
+
 	sort.Strings(eventKeys)
 
 	var totalHours int
@@ -211,12 +214,14 @@ func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holi
 	// Dash or classic output format
 	if *dashFlag {
 		fmt.Printf("%10s - Hr - Description\n", "Date")
+
 		for _, k := range eventKeys {
 			fmt.Printf("%10s - %dh - %s\n", k, eventMap[k].hoursTotal, eventMap[k].workDesc)
 			totalHours += eventMap[k].hoursTotal
 		}
 	} else {
 		fmt.Printf("%10s\tHr\tDescription\n", "Date")
+
 		for _, k := range eventKeys {
 			fmt.Printf("%10s\t%2d\t%s\n", k, eventMap[k].hoursTotal, eventMap[k].workDesc)
 			totalHours += eventMap[k].hoursTotal
@@ -226,8 +231,9 @@ func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holi
 	// Total cumulative statistics
 	fmt.Printf("\nTotal workhour sum for given period:\t\t%d hours\nTotal active days for given period:\t\t%d days\n", totalHours, dayCount)
 
-	// Attempt to identify event overlap with public holidays
 	var holidayKeys []string
+
+	// Attempt to identify event overlap with public holidays
 	for k := range holidayMap {
 		if _, ok := eventMap[k]; ok {
 			holidayKeys = append(holidayKeys, k)
@@ -239,6 +245,7 @@ func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holi
 		sort.Strings(holidayKeys)
 
 		fmt.Printf("\nYou have calendar events on following public holidays:\n")
+
 		for _, k := range holidayKeys {
 			fmt.Printf("%10s\t%v\n", k, holidayMap[k].holidayDesc)
 		}

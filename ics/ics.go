@@ -55,14 +55,17 @@ type Events []Event
 func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 	for _, el := range c.Events {
 		node := el.Data
+
 		dtstart, err := node["DTSTART"].DateDecode()
 		if err != nil {
 			return err
 		}
+
 		dtend, err := node["DTEND"].DateDecode()
 		if err != nil {
 			return err
 		}
+
 		d := Event{
 			Start:   dtstart,
 			End:     dtend,
@@ -120,9 +123,10 @@ func (c *Client) GetResponse() (Events, error) {
 		}
 	}()
 
-	// Parse received ICS
 	d := goics.NewDecoder(resp.Body)
 	evs := Events{}
+
+	// Parse received ICS
 	err = d.Decode(&evs)
 	if err != nil {
 		return Events{}, err

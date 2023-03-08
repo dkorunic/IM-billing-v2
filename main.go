@@ -24,11 +24,10 @@ import (
 	"os"
 	"time"
 
-	"google.golang.org/api/option"
-
 	"github.com/pborman/getopt/v2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/option"
 )
 
 var (
@@ -74,6 +73,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
+
 	client := getClient(config)
 
 	// Initialize Calendar client
@@ -83,8 +83,9 @@ func main() {
 	}
 
 	chanCalendar := make(chan struct{}, 1)
-	chanHolidays := make(chan map[string]holidayEvent)
 	defer close(chanCalendar)
+
+	chanHolidays := make(chan map[string]holidayEvent)
 	defer close(chanHolidays)
 
 	// Fetch Office holiday events
@@ -122,12 +123,13 @@ func parseArgs() {
 	// Use current location timezone from system
 	loc, _ := time.LoadLocation("Local")
 
-	// Convert starting date in regards to local timezone
+	// Convert starting date in regard to local timezone
 	if *startDate != "" {
 		t, err := time.ParseInLocation(dateLayout, *startDate, loc)
 		if err != nil {
 			log.Fatalf("Cannot parse start time: %v", err)
 		}
+
 		startDateFinal = t
 	}
 
@@ -137,6 +139,7 @@ func parseArgs() {
 		if err != nil {
 			log.Fatalf("Cannot parse end time: %v", err)
 		}
+
 		endDateFinal = t
 	}
 

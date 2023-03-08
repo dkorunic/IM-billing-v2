@@ -29,16 +29,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/phayes/freeport"
-
-	"github.com/pkg/browser"
-
+	uuid "github.com/gofrs/uuid"
 	jsoniter "github.com/json-iterator/go"
-
+	"github.com/phayes/freeport"
+	"github.com/pkg/browser"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-
-	uuid "github.com/gofrs/uuid"
 )
 
 const (
@@ -64,7 +60,7 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	// random UUID as a state
 	authReqState, err := uuid.NewV7()
 	if err != nil {
-		log.Fatal("Unable to generate UUID V4: %v", err)
+		log.Fatalf("Unable to generate UUID V4: %v", err)
 	}
 
 	tokChan := make(chan string, 1)
@@ -111,14 +107,16 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 		}
 	}()
 
-	// oauth dialog through system browser
 	authCodeURL := config.AuthCodeURL(authReqState.String(), oauth2.AccessTypeOffline)
 	fmt.Printf("Opening auth URL through system browser: %v\n", authCodeURL)
+
+	// oauth dialog through system browser
 	if err := browser.OpenURL(authCodeURL); err != nil {
 		log.Fatalf("Unable to open system browser: %v", err)
 	}
 
 	var authCode string
+
 	ticker := time.NewTimer(AuthTimeout)
 
 	select {
