@@ -24,7 +24,9 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/KimMachineGun/automemlimit"
 	"github.com/pborman/getopt/v2"
+	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
@@ -53,6 +55,9 @@ func init() {
 }
 
 func main() {
+	undo, _ := maxprocs.Set()
+	defer undo()
+
 	parseArgs()
 
 	ctx := context.Background()
