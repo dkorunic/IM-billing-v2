@@ -35,7 +35,7 @@ import (
 var (
 	calendarName, startDate, endDate, searchString *string
 	apiTimeout                                     *int
-	helpFlag, dashFlag                             *bool
+	helpFlag, dashFlag, includeRecurring           *bool
 	startDateFinal, endDateFinal                   time.Time
 )
 
@@ -47,6 +47,7 @@ func init() {
 	helpFlag = getopt.BoolLong("help", 'h', "display help")
 	dashFlag = getopt.BoolLong("dash", 'd', "use dashes when printing totals")
 	apiTimeout = getopt.IntLong("timeout", 't', 120, "Google Calendar API timeout (in seconds)")
+	includeRecurring = getopt.BoolLong("recurring", 'r', "include recurring events")
 
 	// By default, set start date to the 1st of previous month and end date to the 1st of current month
 	t := time.Now()

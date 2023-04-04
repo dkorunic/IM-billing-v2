@@ -119,7 +119,7 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 
 		// Don't parse event if it's recurring event
 		for _, item := range events.Items {
-			if item.RecurringEventId != "" {
+			if !*includeRecurring && item.RecurringEventId != "" {
 				continue
 			}
 

@@ -2,7 +2,6 @@
 
 [![GitHub license](https://img.shields.io/github/license/dkorunic/IM-billing-v2.svg)](https://github.com/dkorunic/IM-billing-v2/blob/master/LICENSE.txt)
 [![GitHub release](https://img.shields.io/github/release/dkorunic/IM-billing-v2.svg)](https://github.com/dkorunic/IM-billing-v2/releases/latest)
-[![Build Status](https://img.shields.io/travis/dkorunic/IM-billing-v2.svg)](https://travis-ci.org/dkorunic/IM-billing-v2)
 [![codebeat badge](https://codebeat.co/badges/97692d96-db24-40dc-8fda-a9b5be1eb09c)](https://codebeat.co/projects/github-com-dkorunic-im-billing-v2-master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dkorunic/IM-billing-v2)](https://goreportcard.com/report/github.com/dkorunic/IM-billing-v2)
 
@@ -39,12 +38,13 @@ go install github.com/dkorunic/IM-billing-v2@latest
 ## Usage
 
 ```shell
-Usage: IM-billing-v2 [-dh] [-c value] [-e value] [-s value] [-t value] [-x value] [parameters ...]
+Usage: IM-billing-v2 [-dhr] [-c value] [-e value] [-s value] [-t value] [-x value] [parameters ...]
  -c, --calendar=value
                     calendar name
  -d, --dash         use dashes when printing totals
  -e, --end=value    end date (YYYY-MM-DD)
  -h, --help         display help
+ -r, --recurring    include recurring events
  -s, --start=value  start date (YYYY-MM-DD)
  -t, --timeout=value
                     Google Calendar API timeout (in seconds) [120]
