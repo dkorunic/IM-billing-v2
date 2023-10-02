@@ -1,10 +1,14 @@
+before:
+  hooks:
+    - go mod tidy
 builds:
   - flags:
       - -trimpath
+      - -pgo=auto
     env:
       - CGO_ENABLED=0
     ldflags: |
-      -s -w -extldflags '-static'
+      -s -w -extldflags '-static' -X "main.GitTag={{.Tag}}" -X "main.GitCommit={{.ShortCommit}}" -X "main.GitDirty= " -X "main.BuildTime={{.Date}}"
     goos:
       - linux
       - darwin
@@ -27,13 +31,13 @@ universal_binaries:
 changelog:
   sort: asc
 archives:
-  - replacements:
-      linux: Linux
-      darwin: Darwin
-      windows: Windows
-      freebsd: FreeBSD
-      386: i386
-      amd64: x86_64
+  - name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
     format_overrides:
       - goos: windows
         format: zip
