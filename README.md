@@ -38,22 +38,26 @@ go install github.com/dkorunic/IM-billing-v2@latest
 ## Usage
 
 ```shell
-Usage: IM-billing-v2 [-dhr] [-c value] [-e value] [-s value] [-t value] [-x value] [parameters ...]
- -c, --calendar=value
-                    calendar name
- -d, --dash         use dashes when printing totals
- -e, --end=value    end date (YYYY-MM-DD)
- -h, --help         display help
- -r, --recurring    include recurring events
- -s, --start=value  start date (YYYY-MM-DD)
- -t, --timeout=value
-                    Google Calendar API timeout (in seconds) [120]
- -x, --search=value
-                    search string (substring match in event description)
+NAME
+  IM-billing-v2
+
+FLAGS
+  -c, --calendar STRING    calendar name
+  -s, --start STRING       start date (YYYY-MM-DD)
+  -e, --end STRING         end date (YYYY-MM-DD)
+  -x, --search STRING      search string (substring match in event description)
+      --config STRING      config file (optional)
+  -t, --timeout DURATION   Google Calendar API timeout (default: 1m0s)
+  -h, --help               display help
+  -d, --dash               use dashes when printing totals
+  -r, --recurring          include recurring events
 ```
 
-Typical use example to fetch calendar items in your primary calendar from 01/01/2017 to 01/01/2018 and sum only calendar events prefixed with "CLIENT:" prefix:
+Typical use example to fetch calendar items in your primary calendar from `01/01/2017` to `01/01/2018` and sum only calendar events prefixed with `CLIENT:` prefix:
 
 ```shell
-./IM-billing-v2 --search CLIENT: --start 2017-01-01 --end 2018-08-01
+./IM-billing-v2 \
+  --search CLIENT: \
+  --start 2017-01-01 \
+  --end 2018-08-01
 ```

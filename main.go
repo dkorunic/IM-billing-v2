@@ -20,13 +20,16 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"time"
 
 	_ "github.com/KimMachineGun/automemlimit"
 	"github.com/dkorunic/IM-billing-v2/oauth"
-	"github.com/pborman/getopt/v2"
+	"github.com/peterbourgon/ff/v4"
+	"github.com/peterbourgon/ff/v4/ffhelp"
+	"github.com/peterbourgon/ff/v4/ffyaml"
 	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
@@ -35,26 +38,14 @@ import (
 
 var (
 	calendarName, startDate, endDate, searchString *string
-	apiTimeout                                     *int
+	apiTimeout                                     *time.Duration
 	helpFlag, dashFlag, includeRecurring           *bool
 	startDateFinal, endDateFinal                   time.Time
 )
 
-func init() {
-	calendarName = getopt.StringLong("calendar", 'c', "", "calendar name")
-	startDate = getopt.StringLong("start", 's', "", "start date (YYYY-MM-DD)")
-	endDate = getopt.StringLong("end", 'e', "", "end date (YYYY-MM-DD)")
-	searchString = getopt.StringLong("search", 'x', "", "search string (substring match in event description)")
-	helpFlag = getopt.BoolLong("help", 'h', "display help")
-	dashFlag = getopt.BoolLong("dash", 'd', "use dashes when printing totals")
-	apiTimeout = getopt.IntLong("timeout", 't', 120, "Google Calendar API timeout (in seconds)")
-	includeRecurring = getopt.BoolLong("recurring", 'r', "include recurring events")
-
-	// By default, set start date to the 1st of previous month and end date to the 1st of current month
-	t := time.Now()
-	startDateFinal = time.Date(t.Year(), t.Month()-1, 1, 0, 0, 0, 0, time.Local)
-	endDateFinal = time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.Local)
-}
+const (
+	DefaultApiTimeout = 60 * time.Second
+)
 
 func main() {
 	undo, _ := maxprocs.Set()
@@ -112,24 +103,54 @@ func main() {
 		chanCalendar <- struct{}{}
 	}()
 
+	delay := time.NewTimer(*apiTimeout)
+	defer delay.Stop()
+
 	// API timeout handler: wait for *apiTimeout duration until erroring out
-	t := time.Duration(*apiTimeout) * time.Second
 	select {
 	case <-chanCalendar:
-	case <-time.After(t):
+	case <-delay.C:
 		log.Fatal("Timeout fetching Google calendar API... Exiting.")
 	}
 }
 
 // parseArgs parses program arguments via getopt and does minimal required sanity checking.
 func parseArgs() {
-	getopt.Parse()
+	fs := ff.NewFlagSet("IM-billing-v2")
 
-	// Display usage and exit
+	calendarName = fs.String('c', "calendar", "", "calendar name")
+	startDate = fs.String('s', "start", "", "start date (YYYY-MM-DD)")
+	endDate = fs.String('e', "end", "", "end date (YYYY-MM-DD)")
+	searchString = fs.String('x', "search", "", "search string (substring match in event description)")
+
+	_ = fs.StringLong("config", "", "config file (optional)")
+
+	apiTimeout = fs.Duration('t', "timeout", DefaultApiTimeout, "Google Calendar API timeout")
+
+	helpFlag = fs.Bool('h', "help", "display help")
+	dashFlag = fs.Bool('d', "dash", "use dashes when printing totals")
+	includeRecurring = fs.Bool('r', "recurring", "include recurring events")
+
+	if err := ff.Parse(fs, os.Args[1:],
+		ff.WithEnvVarPrefix("IMB"),
+		ff.WithConfigFileFlag("config"),
+		ff.WithConfigFileParser(ffyaml.Parser{}.Parse)); err != nil {
+		fmt.Printf("%s\n", ffhelp.Flags(fs))
+		fmt.Printf("Error: %v\n", err)
+
+		os.Exit(1)
+	}
+
 	if *helpFlag {
-		getopt.PrintUsage(os.Stderr)
+		fmt.Printf("%s\n", ffhelp.Flags(fs))
+
 		os.Exit(0)
 	}
+
+	// By default, set start date to the 1st of previous month and end date to the 1st of current month
+	t := time.Now()
+	startDateFinal = time.Date(t.Year(), t.Month()-1, 1, 0, 0, 0, 0, time.Local)
+	endDateFinal = time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.Local)
 
 	// Use current location timezone from system
 	loc, _ := time.LoadLocation("Local")
