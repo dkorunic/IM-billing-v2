@@ -25,6 +25,7 @@ import (
 	"time"
 
 	_ "github.com/KimMachineGun/automemlimit"
+	"github.com/dkorunic/IM-billing-v2/oauth"
 	"github.com/pborman/getopt/v2"
 	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/oauth2/google"
@@ -80,7 +81,11 @@ func main() {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
 
-	client := getClient(config)
+	// Retrieve Calendar API user token
+	client, err := oauth.GetClient(ctxWithCancel, config, "token.json")
+	if err != nil {
+		log.Fatalf("Unable to retrieve token: %v", err)
+	}
 
 	// Initialize Calendar client
 	srv, err := calendar.NewService(ctxWithCancel, option.WithHTTPClient(client))
