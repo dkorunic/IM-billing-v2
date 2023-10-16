@@ -114,7 +114,7 @@ func main() {
 	}
 }
 
-// parseArgs parses program arguments via getopt and does minimal required sanity checking.
+// parseArgs parses program arguments via ff and does minimal required sanity checking.
 func parseArgs() {
 	fs := ff.NewFlagSet("IM-billing-v2")
 
