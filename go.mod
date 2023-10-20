@@ -10,7 +10,7 @@ require (
 	golang.org/x/oauth2 v0.13.0
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
-	google.golang.org/api v0.147.0
+	google.golang.org/api v0.148.0
 )
 
 require (
