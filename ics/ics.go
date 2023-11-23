@@ -20,6 +20,7 @@ package ics
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -29,11 +30,15 @@ import (
 	"github.com/jordic/goics"
 )
 
-// URL is a country-local holiday calendar in ICS format.
-const URL = "https://www.officeholidays.com/ics/ics_country_iso.php?tbl_country=%s"
+const (
+	// URL is a country-local holiday calendar in ICS format.
+	URL = "https://www.officeholidays.com/ics/ics_country_iso.php?tbl_country=%s"
 
-// DefaultTimeout is a default ICS fetch HTTP timeout.
-const DefaultTimeout = 10 * time.Second
+	// DefaultTimeout is a default ICS fetch HTTP timeout.
+	DefaultTimeout = 10 * time.Second
+)
+
+var ErrNilBody = errors.New("client body is nil")
 
 // Client is an ICS HTTP client for remote fetching/parsing ICS calendar.
 type Client struct {
@@ -56,14 +61,18 @@ func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
 	for _, el := range c.Events {
 		node := el.Data
 
+		if node == nil || node["DTSTART"] == nil || node["DTEND"] == nil || node["UID"] == nil || node["SUMMARY"] == nil {
+			continue
+		}
+
 		dtstart, err := node["DTSTART"].DateDecode()
 		if err != nil {
-			return err
+			continue
 		}
 
 		dtend, err := node["DTEND"].DateDecode()
 		if err != nil {
-			return err
+			continue
 		}
 
 		d := Event{
@@ -113,6 +122,10 @@ func (c *Client) GetResponse() (Events, error) {
 		default:
 			return Events{}, err
 		}
+	}
+
+	if resp == nil || resp.Body == nil {
+		return Events{}, fmt.Errorf("%w", ErrNilBody)
 	}
 
 	// Defer body close() with error propagation

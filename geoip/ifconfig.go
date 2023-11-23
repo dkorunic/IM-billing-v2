@@ -21,6 +21,7 @@ package geoip
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -31,11 +32,15 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-// URL is a default GeoIP URL with JSON response.
-const URL = "https://ifconfig.co/json"
+const (
+	// URL is a default GeoIP URL with JSON response.
+	URL = "https://ifconfig.co/json"
 
-// DefaultTimeout is a default Ifconfig/GeoIP request timeout.
-const DefaultTimeout = 10 * time.Second
+	// DefaultTimeout is a default Ifconfig/GeoIP request timeout.
+	DefaultTimeout = 10 * time.Second
+)
+
+var ErrNilBody = errors.New("client body is nil")
 
 // Response is a structure for parsed ifconfig.co JSON response.
 type Response struct {
@@ -89,6 +94,10 @@ func (c *Client) GetResponse() (Response, error) {
 		default:
 			return Response{}, err
 		}
+	}
+
+	if resp == nil || resp.Body == nil {
+		return Response{}, fmt.Errorf("%w", ErrNilBody)
 	}
 
 	// Defer body close() with error propagation
