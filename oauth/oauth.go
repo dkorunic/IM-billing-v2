@@ -64,22 +64,48 @@ var (
 	ErrOAuthTokenEncode = errors.New("unable to encode OAuth token to JSON")
 )
 
-// GetClient retrieves an HTTP client with OAuth2 authentication.
+// GetClient retrieves an HTTP client with the given context, OAuth2 configuration, and token path.
 //
-// It takes the following parameters:
-// - ctx: the context.Context to use for the HTTP client.
-// - config: the *oauth2.Config object containing the OAuth2 configuration.
-// - tokenPath: the path to the token file.
+// The function takes in the following parameters:
+// - ctx: the context.Context for the HTTP client.
+// - config: the *oauth2.Config for OAuth2 configuration.
+// - tokenPath: the string representing the path to the token file.
 //
-// It returns a *http.Client and an error.
+// The function returns the following:
+// - *http.Client: the HTTP client.
+// - error: an error if any occurred during the execution of the function.
 func GetClient(ctx context.Context, config *oauth2.Config, tokenPath string) (*http.Client, error) {
 	tok, err := tokenFromFile(tokenPath)
-	if err != nil {
+	saveToFile := false
+
+	if err == nil {
+		// we have a token, but it has expired so attempt to refresh it
+		if tok.Expiry.Before(time.Now()) {
+			src := config.TokenSource(ctx, tok)
+
+			// refresh token
+			newTok, err := src.Token()
+			if err != nil {
+				return nil, err
+			}
+
+			// token has been refreshed, and we will try to save it
+			if newTok.AccessToken != tok.AccessToken {
+				saveToFile = true
+				tok = newTok
+			}
+		}
+	} else {
+		// we don't have a token, so we will obtain interactively
 		tok, err = getTokenFromWeb(ctx, config)
 		if err != nil {
 			return nil, err
 		}
 
+		saveToFile = true
+	}
+
+	if saveToFile {
 		if err = saveToken(tokenPath, tok); err != nil {
 			return nil, err
 		}
