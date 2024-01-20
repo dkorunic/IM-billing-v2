@@ -20,6 +20,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"log"
 	"os"
@@ -44,8 +45,12 @@ var (
 )
 
 const (
-	DefaultApiTimeout = 60 * time.Second
+	DefaultApiTimeout  = 60 * time.Second
+	DefaultCredentials = "credentials.json"
 )
+
+//go:embed credentials.json
+var credentialFS embed.FS
 
 func main() {
 	undo, _ := maxprocs.Set()
@@ -61,9 +66,9 @@ func main() {
 	}()
 
 	// Load Calendar API credentials
-	b, err := os.ReadFile("credentials.json")
+	b, err := credentialFS.ReadFile("credentials.json")
 	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
+		log.Fatalf("Unable to read credentials file: %v", err)
 	}
 
 	// Parse Calendar API credentials

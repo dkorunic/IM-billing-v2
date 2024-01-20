@@ -13,10 +13,6 @@ entries belonging to a specific "sub"-calendar, you can easily print out
 those for a specific (and any) time frame, sum them and make a simple
 billing calculation.
 
-## Requirements
-
-- **credentials.json**: Google Calendar API credentials obtainable here: [https://developers.google.com/calendar/quickstart/go](https://developers.google.com/calendar/quickstart/go)
-
 ## API
 
 - Google Calendar API: [https://developers.google.com/calendar/v3/reference/](https://developers.google.com/calendar/v3/reference/)

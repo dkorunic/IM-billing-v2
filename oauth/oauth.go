@@ -153,6 +153,7 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 	s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if actualState := r.URL.Query().Get("state"); actualState != authReqState.String() {
 			http.Error(w, "Invalid authentication state", http.StatusUnauthorized)
+			close(tokChan)
 
 			return
 		}
@@ -192,6 +193,11 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 		break
 	case <-ticker.C:
 		return nil, ErrOAuthTimeout
+	}
+
+	// short-circuit on callback error (empty state)
+	if authCode == "" {
+		return nil, ErrOAuthTokenFetch
 	}
 
 	tok, err := config.Exchange(ctx, authCode)
