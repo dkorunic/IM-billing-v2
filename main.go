@@ -66,7 +66,7 @@ func main() {
 	}()
 
 	// Load Calendar API credentials
-	b, err := credentialFS.ReadFile("credentials.json")
+	b, err := credentialFS.ReadFile(DefaultCredentials)
 	if err != nil {
 		log.Fatalf("Unable to read credentials file: %v", err)
 	}

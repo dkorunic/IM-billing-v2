@@ -34,8 +34,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gofrs/uuid"
 	"github.com/google/renameio/v2/maybe"
+	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/phayes/freeport"
 	"github.com/pkg/browser"
