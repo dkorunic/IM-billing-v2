@@ -26,7 +26,7 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/KimMachineGun/automemlimit"
+	"github.com/KimMachineGun/automemlimit/memlimit"
 	"github.com/dkorunic/IM-billing-v2/oauth"
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
@@ -47,12 +47,24 @@ var (
 const (
 	DefaultApiTimeout  = 60 * time.Second
 	DefaultCredentials = "credentials.json"
+	maxMemRatio        = 0.9
 )
 
 //go:embed credentials.json
 var credentialFS embed.FS
 
 func main() {
+	// configure GOMEMLIMIT to 90% of available memory (Cgroups v2/v1 or system)
+	_, _ = memlimit.SetGoMemLimitWithOpts(
+		memlimit.WithRatio(maxMemRatio),
+		memlimit.WithProvider(
+			memlimit.ApplyFallback(
+				memlimit.FromCgroup,
+				memlimit.FromSystem,
+			),
+		),
+	)
+
 	undo, _ := maxprocs.Set()
 	defer undo()
 
