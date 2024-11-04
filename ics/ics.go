@@ -57,7 +57,7 @@ type Event struct {
 type Events []Event
 
 // ConsumeICal consumes/parses an individual ICS event into an Event structure.
-func (e *Events) ConsumeICal(c *goics.Calendar, err error) error {
+func (e *Events) ConsumeICal(c *goics.Calendar, _ error) error {
 	for _, el := range c.Events {
 		node := el.Data
 
