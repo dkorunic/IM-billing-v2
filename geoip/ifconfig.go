@@ -20,7 +20,6 @@ package geoip
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -29,7 +28,7 @@ import (
 	"net/url"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
 
 const (
@@ -123,7 +122,6 @@ func (c *Client) GetResponse() (Response, error) {
 
 	// Parse received JSON
 	geoip := Response{}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal(body, &geoip)
 
 	return geoip, err

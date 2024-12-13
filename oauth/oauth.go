@@ -34,9 +34,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/google/renameio/v2/maybe"
 	"github.com/google/uuid"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/phayes/freeport"
 	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
@@ -220,7 +220,6 @@ func tokenFromFile(tokenPath string) (*oauth2.Token, error) {
 	}
 
 	tok := &oauth2.Token{}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 
 	err = json.NewDecoder(bytes.NewBuffer(b)).Decode(tok)
 
@@ -237,8 +236,6 @@ func tokenFromFile(tokenPath string) (*oauth2.Token, error) {
 // - error: an error indicating any issues encountered during the saving process.
 func saveToken(tokenPath string, token *oauth2.Token) error {
 	buf := new(bytes.Buffer)
-
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 
 	err := json.NewEncoder(buf).Encode(token)
 	if err != nil {
