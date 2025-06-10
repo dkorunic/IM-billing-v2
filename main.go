@@ -46,11 +46,11 @@ var (
 
 const (
 	DefaultApiTimeout  = 60 * time.Second
-	DefaultCredentials = "credentials.json"
+	DefaultCredentials = "assets/credentials.json"
 	maxMemRatio        = 0.9
 )
 
-//go:embed credentials.json
+//go:embed assets/credentials.json
 var credentialFS embed.FS
 
 func main() {
