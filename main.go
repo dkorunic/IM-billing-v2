@@ -31,7 +31,6 @@ import (
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 	"github.com/peterbourgon/ff/v4/ffyaml"
-	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
@@ -64,9 +63,6 @@ func main() {
 			),
 		),
 	)
-
-	undo, _ := maxprocs.Set()
-	defer undo()
 
 	parseArgs()
 
