@@ -11,7 +11,6 @@ require (
 
 require (
 	github.com/KimMachineGun/automemlimit v0.7.4
-	github.com/goccy/go-json v0.10.5
 	github.com/google/renameio/v2 v2.0.0
 	github.com/google/uuid v1.6.0
 	github.com/peterbourgon/ff/v4 v4.0.0-beta.1
@@ -22,7 +21,7 @@ require (
 require (
 	cloud.google.com/go/auth v0.16.5 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
-	cloud.google.com/go/compute/metadata v0.8.0 // indirect
+	cloud.google.com/go/compute/metadata v0.8.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -30,7 +29,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
-	go.opentelemetry.io/auto/sdk v1.2.0 // indirect
+	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 // indirect
 	go.opentelemetry.io/otel v1.38.0 // indirect
 	go.opentelemetry.io/otel/metric v1.38.0 // indirect

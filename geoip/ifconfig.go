@@ -20,6 +20,7 @@ package geoip
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -27,8 +28,6 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-
-	"github.com/goccy/go-json"
 )
 
 const (

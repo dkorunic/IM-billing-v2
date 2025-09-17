@@ -24,6 +24,7 @@ package oauth
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -34,7 +35,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/goccy/go-json"
 	"github.com/google/renameio/v2/maybe"
 	"github.com/google/uuid"
 	"github.com/phayes/freeport"
