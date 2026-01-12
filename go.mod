@@ -4,14 +4,14 @@ require (
 	github.com/jordic/goics v0.0.0-20210404174824-5a0337b716a0
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/oauth2 v0.34.0
-	golang.org/x/sys v0.39.0 // indirect
-	golang.org/x/text v0.32.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
 	google.golang.org/api v0.259.0
 )
 
 require (
 	github.com/KimMachineGun/automemlimit v0.7.5
-	github.com/google/renameio/v2 v2.0.1
+	github.com/google/renameio/v2 v2.0.2
 	github.com/google/uuid v1.6.0
 	github.com/peterbourgon/ff/v4 v4.0.0-beta.1
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
@@ -27,7 +27,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.3.8 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.9 // indirect
 	github.com/googleapis/gax-go/v2 v2.16.0 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
