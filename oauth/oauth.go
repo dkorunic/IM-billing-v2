@@ -35,6 +35,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/renameio/v2/maybe"
 	"github.com/google/uuid"
 	"github.com/phayes/freeport"
@@ -150,7 +151,8 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 	defer s.Close()
 
 	// oauth callback handler
-	s.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r := chi.NewRouter()
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		if actualState := r.URL.Query().Get("state"); actualState != authReqState.String() {
 			http.Error(w, "Invalid authentication state", http.StatusUnauthorized)
 			close(tokChan)
@@ -165,6 +167,8 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 			f.Flush()
 		}
 	})
+
+	s.Handler = r
 
 	// oauth callback server
 	go func() {
