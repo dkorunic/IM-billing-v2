@@ -96,7 +96,7 @@ func NewClient(countryCode string) (*Client, error) {
 
 // NewClientWithContext creates a HTTP client structure for ICS fetch/parse with ctx Context.
 func NewClientWithContext(ctx context.Context, countryCode string) (*Client, error) {
-	IcsURL, err := url.Parse(fmt.Sprintf(URL, countryCode))
+	IcsURL, err := url.Parse(fmt.Sprintf(URL, url.QueryEscape(countryCode)))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func NewClientWithContext(ctx context.Context, countryCode string) (*Client, err
 }
 
 // GetResponse fetches a HTTP response from officeholldays site with country-local ICS as a body.
-func (c *Client) GetResponse() (Events, error) {
+func (c *Client) GetResponse() (evs Events, err error) {
 	req, err := http.NewRequestWithContext(c.ctx, http.MethodGet, c.URL.String(), nil)
 	if err != nil {
 		return Events{}, err
@@ -137,7 +137,6 @@ func (c *Client) GetResponse() (Events, error) {
 	}()
 
 	d := goics.NewDecoder(resp.Body)
-	evs := Events{}
 
 	// Parse received ICS
 	err = d.Decode(&evs)
@@ -145,5 +144,5 @@ func (c *Client) GetResponse() (Events, error) {
 		return Events{}, err
 	}
 
-	return evs, nil
+	return evs, err
 }

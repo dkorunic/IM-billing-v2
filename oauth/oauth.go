@@ -33,6 +33,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -81,7 +82,7 @@ func GetClient(ctx context.Context, config *oauth2.Config, tokenPath string) (*h
 
 	if err == nil {
 		// we have a token, but it has expired so attempt to refresh it
-		if tok.Expiry.Before(time.Now()) {
+		if !tok.Valid() {
 			src := config.TokenSource(ctx, tok)
 
 			// refresh token
@@ -129,6 +130,8 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 
 	tokChan := make(chan string, 1)
 
+	var once sync.Once
+
 	// get a free random port
 	authListenPort, err := freeport.GetFreePort()
 	if err != nil {
@@ -155,13 +158,17 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		if actualState := r.URL.Query().Get("state"); actualState != authReqState.String() {
 			http.Error(w, "Invalid authentication state", http.StatusUnauthorized)
-			close(tokChan)
+
+			once.Do(func() { close(tokChan) })
 
 			return
 		}
 
-		tokChan <- r.URL.Query().Get("code")
-		close(tokChan)
+		once.Do(func() {
+			tokChan <- r.URL.Query().Get("code")
+			close(tokChan)
+		})
+
 		_, _ = io.WriteString(w, "Authentication complete, you can close this window.\n")
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()

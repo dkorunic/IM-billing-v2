@@ -77,7 +77,7 @@ func NewClientWithContext(ctx context.Context) (*Client, error) {
 }
 
 // GetResponse fetches a HTTP response with JSON body from ifconfig.co site and parses it.
-func (c *Client) GetResponse() (Response, error) {
+func (c *Client) GetResponse() (geoip Response, err error) {
 	req, err := http.NewRequestWithContext(c.ctx, http.MethodGet, c.URL.String(), nil)
 	if err != nil {
 		return Response{}, err
@@ -113,14 +113,11 @@ func (c *Client) GetResponse() (Response, error) {
 	}
 
 	// Handle HTTP errors
-	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf(string(body))
-
-		return Response{}, err
+	if resp.StatusCode != http.StatusOK {
+		return Response{}, fmt.Errorf("%s", string(body))
 	}
 
 	// Parse received JSON
-	geoip := Response{}
 	err = json.Unmarshal(body, &geoip)
 
 	return geoip, err

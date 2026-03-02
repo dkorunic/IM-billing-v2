@@ -134,7 +134,7 @@ func parseArgs() {
 	calendarName = fs.String('c', "calendar", "", "calendar name")
 	startDate = fs.String('s', "start", "", "start date (YYYY-MM-DD)")
 	endDate = fs.String('e', "end", "", "end date (YYYY-MM-DD)")
-	searchString = fs.String('x', "search", "", "search string (substring match in event description)")
+	searchString = fs.String('x', "search", "", "search string (prefix match in event description)")
 
 	_ = fs.StringLong("config", "", "config file (optional)")
 
