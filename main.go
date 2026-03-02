@@ -69,9 +69,7 @@ func main() {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunction := context.WithCancel(ctx)
 
-	defer func() {
-		cancelFunction()
-	}()
+	defer cancelFunction()
 
 	// Load Calendar API credentials
 	b, err := credentialFS.ReadFile(DefaultCredentials)

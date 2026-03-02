@@ -232,7 +232,7 @@ func tokenFromFile(tokenPath string) (*oauth2.Token, error) {
 
 	tok := &oauth2.Token{}
 
-	err = json.NewDecoder(bytes.NewBuffer(b)).Decode(tok)
+	err = json.Unmarshal(b, tok)
 
 	return tok, err
 }

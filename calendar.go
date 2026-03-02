@@ -22,7 +22,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -98,13 +98,20 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 
 	nextPageToken := ""
 
+	// Hoist loop-invariant values outside the pagination loop
+	loc := time.Local
+	timeMin := startDateFinal.Format(time.RFC3339)
+	timeMax := endDateFinal.Format(time.RFC3339)
+	includeRecurringLocal := *includeRecurring
+	searchStringLocal := *searchString
+
 	// Get all calendar events within specified date range (paginated)
 	for {
 		eventsCall := srv.Events.List(calID).
 			ShowDeleted(false).
 			SingleEvents(true).
-			TimeMin(startDateFinal.Format(time.RFC3339)).
-			TimeMax(endDateFinal.Format(time.RFC3339)).
+			TimeMin(timeMin).
+			TimeMax(timeMax).
 			MaxResults(calendarMaxResults).
 			OrderBy("startTime").
 			PageToken(nextPageToken)
@@ -114,12 +121,9 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 			log.Fatalf("Unable to retrieve user's events: %v", err)
 		}
 
-		// Use current location timezone from system
-		loc, _ := time.LoadLocation("Local")
-
 		// Don't parse event if it's recurring event
 		for _, item := range events.Items {
-			if !*includeRecurring && item.RecurringEventId != "" {
+			if !includeRecurringLocal && item.RecurringEventId != "" {
 				continue
 			}
 
@@ -140,11 +144,11 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 			}
 
 			// Match prefix string if requested
-			if *searchString != "" {
-				if !strings.HasPrefix(desc, *searchString) {
+			if searchStringLocal != "" {
+				if !strings.HasPrefix(desc, searchStringLocal) {
 					continue
 				} else {
-					desc = strings.TrimSpace(strings.TrimPrefix(desc, *searchString))
+					desc = strings.TrimSpace(strings.TrimPrefix(desc, searchStringLocal))
 				}
 			}
 
@@ -184,7 +188,7 @@ func parseCalendarEvent(desc, start, end string, loc *time.Location, eventMap ma
 	// Update calendar event map with either adding work hours or creating a new entry
 	if temp, ok := eventMap[dateKey]; ok {
 		temp.hoursTotal += hours
-		temp.workDesc = fmt.Sprintf("%s, %s", temp.workDesc, desc)
+		temp.workDesc = temp.workDesc + ", " + desc
 		eventMap[dateKey] = temp
 	} else {
 		eventMap[dateKey] = workEvent{workDesc: desc, hoursTotal: hours}
@@ -207,7 +211,7 @@ func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holi
 		dayCount++
 	}
 
-	sort.Strings(eventKeys)
+	slices.Sort(eventKeys)
 
 	var totalHours int
 
@@ -216,15 +220,17 @@ func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holi
 		fmt.Printf("%10s - Hr - Description\n", "Date")
 
 		for _, k := range eventKeys {
-			fmt.Printf("%10s - %dh - %s\n", k, eventMap[k].hoursTotal, eventMap[k].workDesc)
-			totalHours += eventMap[k].hoursTotal
+			v := eventMap[k]
+			fmt.Printf("%10s - %dh - %s\n", k, v.hoursTotal, v.workDesc)
+			totalHours += v.hoursTotal
 		}
 	} else {
 		fmt.Printf("%10s\tHr\tDescription\n", "Date")
 
 		for _, k := range eventKeys {
-			fmt.Printf("%10s\t%2d\t%s\n", k, eventMap[k].hoursTotal, eventMap[k].workDesc)
-			totalHours += eventMap[k].hoursTotal
+			v := eventMap[k]
+			fmt.Printf("%10s\t%2d\t%s\n", k, v.hoursTotal, v.workDesc)
+			totalHours += v.hoursTotal
 		}
 	}
 
@@ -242,7 +248,7 @@ func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holi
 
 	// Display event overlap with holidays only if we have any results
 	if len(holidayKeys) > 0 {
-		sort.Strings(holidayKeys)
+		slices.Sort(holidayKeys)
 
 		fmt.Printf("\nYou have calendar events on following public holidays:\n")
 

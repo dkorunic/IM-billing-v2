@@ -106,19 +106,15 @@ func (c *Client) GetResponse() (geoip Response, err error) {
 		}
 	}()
 
-	// Fetch whole body at once
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return Response{}, err
-	}
-
-	// Handle HTTP errors
+	// Handle HTTP errors before buffering body
 	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+
 		return Response{}, fmt.Errorf("%s", string(body))
 	}
 
-	// Parse received JSON
-	err = json.Unmarshal(body, &geoip)
+	// Stream-decode JSON directly from response body
+	err = json.NewDecoder(resp.Body).Decode(&geoip)
 
 	return geoip, err
 }
