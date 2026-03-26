@@ -96,10 +96,7 @@ func main() {
 	}
 
 	chanCalendar := make(chan struct{}, 1)
-	defer close(chanCalendar)
-
 	chanHolidays := make(chan map[string]holidayEvent)
-	defer close(chanHolidays)
 
 	// Fetch Office holiday events
 	go func() {
@@ -163,12 +160,9 @@ func parseArgs() {
 	startDateFinal = time.Date(t.Year(), t.Month()-1, 1, 0, 0, 0, 0, time.Local)
 	endDateFinal = time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.Local)
 
-	// Use current location timezone from system
-	loc, _ := time.LoadLocation("Local")
-
 	// Convert starting date in regard to local timezone
 	if *startDate != "" {
-		t, err := time.ParseInLocation(dateLayout, *startDate, loc)
+		t, err := time.ParseInLocation(dateLayout, *startDate, time.Local)
 		if err != nil {
 			log.Fatalf("Cannot parse start time: %v", err)
 		}
@@ -178,7 +172,7 @@ func parseArgs() {
 
 	// Convert ending date in regards to local timezone
 	if *endDate != "" {
-		t, err := time.ParseInLocation(dateLayout, *endDate, loc)
+		t, err := time.ParseInLocation(dateLayout, *endDate, time.Local)
 		if err != nil {
 			log.Fatalf("Cannot parse end time: %v", err)
 		}

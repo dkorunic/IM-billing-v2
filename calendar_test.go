@@ -19,6 +19,9 @@
 package main
 
 import (
+	"bytes"
+	"io"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -147,6 +150,100 @@ func TestParseCalendarEvent_HourRounding(t *testing.T) {
 				t.Errorf("hoursTotal: got %d, want %d", ev.hoursTotal, tc.wantHours)
 			}
 		})
+	}
+}
+
+// TC-03: map key must come from start time, not end time.
+// An event crossing midnight must be bucketed under the start date.
+func TestParseCalendarEvent_DateKeyFromStartNotEnd(t *testing.T) {
+	eventMap := make(map[string]workEvent)
+
+	result := parseCalendarEvent(
+		"Late work",
+		"2024-01-15T23:00:00+00:00",
+		"2024-01-16T01:00:00+00:00",
+		time.UTC,
+		eventMap,
+	)
+
+	if _, ok := result["2024-01-15"]; !ok {
+		t.Error("expected key 2024-01-15 (start date) but it was absent")
+	}
+
+	if _, ok := result["2024-01-16"]; ok {
+		t.Error("key 2024-01-16 (end date) must not be used as the event key")
+	}
+}
+
+// TC-08: printMonthlyStats must warn only for holidays that overlap with work events.
+func TestPrintMonthlyStats_HolidayOverlapDetection(t *testing.T) {
+	origCalendarName := calendarName
+	origDashFlag := dashFlag
+	origStart := startDateFinal
+	origEnd := endDateFinal
+
+	t.Cleanup(func() {
+		calendarName = origCalendarName
+		dashFlag = origDashFlag
+		startDateFinal = origStart
+		endDateFinal = origEnd
+	})
+
+	calName := "TestCal"
+	calendarName = &calName
+
+	dash := false
+	dashFlag = &dash
+
+	startDateFinal = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	endDateFinal = time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC)
+
+	eventMap := map[string]workEvent{
+		"2024-01-15": {workDesc: "Holiday work", hoursTotal: 8},
+		"2024-01-20": {workDesc: "Normal work", hoursTotal: 8},
+	}
+	holidayMap := map[string]holidayEvent{
+		"2024-01-15": {holidayDesc: "Public Holiday"},  // overlap: work event exists
+		"2024-01-25": {holidayDesc: "Another Holiday"}, // no overlap: no work event
+	}
+
+	rPipe, wPipe, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	origStdout := os.Stdout
+	os.Stdout = wPipe
+
+	printMonthlyStats(eventMap, holidayMap)
+
+	wPipe.Close()
+	os.Stdout = origStdout
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, rPipe); err != nil {
+		t.Fatal(err)
+	}
+
+	rPipe.Close()
+
+	output := buf.String()
+
+	const overlapHeader = "You have calendar events on following public holidays:"
+
+	overlapIdx := strings.Index(output, overlapHeader)
+	if overlapIdx == -1 {
+		t.Fatalf("holiday overlap section not found in output:\n%s", output)
+	}
+
+	overlapSection := output[overlapIdx:]
+
+	if !strings.Contains(overlapSection, "2024-01-15") {
+		t.Errorf("2024-01-15 (worked on a holiday) must appear in overlap section; output:\n%s", output)
+	}
+
+	if strings.Contains(overlapSection, "2024-01-25") {
+		t.Errorf("2024-01-25 (holiday with no work event) must not appear in overlap section; output:\n%s", output)
 	}
 }
 

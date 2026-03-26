@@ -22,7 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -98,10 +98,10 @@ func NewClient(countryCode string) (*Client, error) {
 func NewClientWithContext(ctx context.Context, countryCode string) (*Client, error) {
 	IcsURL, err := url.Parse(fmt.Sprintf(URL, url.QueryEscape(countryCode)))
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	c := &Client{httpClient: &http.Client{Timeout: DefaultTimeout}, URL: IcsURL, ctx: ctx}
+	c := &Client{httpClient: &http.Client{}, URL: IcsURL, ctx: ctx}
 
 	return c, nil
 }
@@ -136,7 +136,14 @@ func (c *Client) GetResponse() (evs Events, err error) {
 		}
 	}()
 
-	d := goics.NewDecoder(resp.Body)
+	// Handle HTTP errors before decoding body
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 20<<20))
+
+		return Events{}, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	d := goics.NewDecoder(io.LimitReader(resp.Body, 20<<20))
 
 	// Parse received ICS
 	err = d.Decode(&evs)

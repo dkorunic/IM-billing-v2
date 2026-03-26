@@ -56,14 +56,15 @@ const (
 )
 
 var (
-	ErrOAuthUUID        = errors.New("unable to generate UUID")
-	ErrOAuthFreePort    = errors.New("unable to get a free port")
-	ErrOAuthHTTPServer  = errors.New("unable to start HTTP server")
-	ErrOAuthBrowser     = errors.New("unable to open system browser")
-	ErrOAuthTimeout     = errors.New("timeout while waiting for authentication to finish")
-	ErrOAuthTokenFetch  = errors.New("unable to retrieve token from Google API")
-	ErrOAuthTokenSave   = errors.New("unable to save token to file")
-	ErrOAuthTokenEncode = errors.New("unable to encode OAuth token to JSON")
+	ErrOAuthUUID          = errors.New("unable to generate UUID")
+	ErrOAuthFreePort      = errors.New("unable to get a free port")
+	ErrOAuthHTTPServer    = errors.New("unable to start HTTP server")
+	ErrOAuthBrowser       = errors.New("unable to open system browser")
+	ErrOAuthTimeout       = errors.New("timeout while waiting for authentication to finish")
+	ErrOAuthStateMismatch = errors.New("OAuth state parameter mismatch: possible CSRF attack")
+	ErrOAuthTokenFetch    = errors.New("unable to retrieve token from Google API")
+	ErrOAuthTokenSave     = errors.New("unable to save token to file")
+	ErrOAuthTokenEncode   = errors.New("unable to encode OAuth token to JSON")
 )
 
 // GetClient retrieves an HTTP client with the given context, OAuth2 configuration, and token path.
@@ -88,14 +89,19 @@ func GetClient(ctx context.Context, config *oauth2.Config, tokenPath string) (*h
 			// refresh token
 			newTok, err := src.Token()
 			if err != nil {
-				return nil, err
-			}
-
-			// token has been refreshed, and we will try to save it
-			if newTok.AccessToken != tok.AccessToken {
-				saveToFile = true
+				// Refresh failed (e.g. missing or revoked refresh token);
+				// fall back to interactive browser flow
+				tok, err = getTokenFromWeb(ctx, config)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				// token has been refreshed, always persist it to capture any
+				// updated expiry or rotated refresh token
 				tok = newTok
 			}
+
+			saveToFile = true
 		}
 	} else {
 		// we don't have a token, so we will obtain interactively
@@ -129,6 +135,7 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 	}
 
 	tokChan := make(chan string, 1)
+	errChan := make(chan error, 1)
 
 	var once sync.Once
 
@@ -151,7 +158,11 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 		ReadHeaderTimeout: ReadHeaderTimeout,
 		Addr:              authListenHost,
 	}
-	defer s.Close()
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_ = s.Shutdown(shutdownCtx)
+	}()
 
 	// oauth callback handler
 	r := chi.NewRouter()
@@ -159,14 +170,13 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 		if actualState := r.URL.Query().Get("state"); actualState != authReqState.String() {
 			http.Error(w, "Invalid authentication state", http.StatusUnauthorized)
 
-			once.Do(func() { close(tokChan) })
+			once.Do(func() { errChan <- ErrOAuthStateMismatch })
 
 			return
 		}
 
 		once.Do(func() {
 			tokChan <- r.URL.Query().Get("code")
-			close(tokChan)
 		})
 
 		_, _ = io.WriteString(w, "Authentication complete, you can close this window.\n")
@@ -180,7 +190,7 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 	// oauth callback server
 	go func() {
 		if err := s.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("%v: %v", ErrOAuthHTTPServer, err)
+			once.Do(func() { errChan <- fmt.Errorf("%w: %w", ErrOAuthHTTPServer, err) })
 		}
 	}()
 
@@ -202,13 +212,10 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 		ticker.Stop()
 
 		break
+	case handlerErr := <-errChan:
+		return nil, handlerErr
 	case <-ticker.C:
 		return nil, ErrOAuthTimeout
-	}
-
-	// short-circuit on callback error (empty state)
-	if authCode == "" {
-		return nil, ErrOAuthTokenFetch
 	}
 
 	tok, err := config.Exchange(ctx, authCode)

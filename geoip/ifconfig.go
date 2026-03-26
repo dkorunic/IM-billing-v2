@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -68,10 +67,10 @@ func NewClient() (*Client, error) {
 func NewClientWithContext(ctx context.Context) (*Client, error) {
 	ifconfigURL, err := url.Parse(URL)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	c := &Client{httpClient: &http.Client{Timeout: DefaultTimeout}, URL: ifconfigURL, ctx: ctx}
+	c := &Client{httpClient: &http.Client{}, URL: ifconfigURL, ctx: ctx}
 
 	return c, nil
 }
@@ -108,9 +107,9 @@ func (c *Client) GetResponse() (geoip Response, err error) {
 
 	// Handle HTTP errors before buffering body
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 20<<20))
 
-		return Response{}, fmt.Errorf("%s", string(body))
+		return Response{}, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
 	}
 
 	// Stream-decode JSON directly from response body

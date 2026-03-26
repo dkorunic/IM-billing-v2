@@ -57,6 +57,8 @@ func getCalendarID(srv *calendar.Service, calendarName *string) string {
 
 	nextPageToken := ""
 
+	var availableNames []string
+
 	// Get calendar listing (paginated) and try to match name
 	for {
 		calendarsCall := srv.CalendarList.List().
@@ -68,11 +70,13 @@ func getCalendarID(srv *calendar.Service, calendarName *string) string {
 			log.Fatalf("Unable to retrieve user's calendar: %v", err)
 		}
 
-		// Match calendar name
+		// Match calendar name; collect all names for diagnostics
 		for _, item := range listCal.Items {
 			if item.Summary == *calendarName {
 				return item.Id
 			}
+
+			availableNames = append(availableNames, item.Summary)
 		}
 
 		// Handle pagination
@@ -81,6 +85,8 @@ func getCalendarID(srv *calendar.Service, calendarName *string) string {
 			break
 		}
 	}
+
+	log.Printf("Available calendars: %s", strings.Join(availableNames, ", "))
 
 	return ""
 }
@@ -172,12 +178,14 @@ func parseCalendarEvent(desc, start, end string, loc *time.Location, eventMap ma
 	// Parse event starting time in RFC3339 (recurring events do not comply)
 	startTime, err := time.ParseInLocation(time.RFC3339, start, loc)
 	if err != nil {
+		log.Printf("Skipping event %q: unable to parse start time %q (all-day events without a time component are not supported)", desc, start)
 		return eventMap
 	}
 
 	// Parse event ending time in RFC3339 (recurring events do not comply)
 	endTime, err := time.ParseInLocation(time.RFC3339, end, loc)
 	if err != nil {
+		log.Printf("Skipping event %q: unable to parse end time %q (all-day events without a time component are not supported)", desc, end)
 		return eventMap
 	}
 
@@ -199,7 +207,12 @@ func parseCalendarEvent(desc, start, end string, loc *time.Location, eventMap ma
 
 // printMonthlyStats displays final monthly calendar statistics.
 func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holidayEvent) {
-	fmt.Printf("Listing work done on %v project from %v to %v\n", *calendarName,
+	calName := *calendarName
+	if calName == "" {
+		calName = "primary"
+	}
+
+	fmt.Printf("Listing work done on %v project from %v to %v\n", calName,
 		startDateFinal.Format(dateLayout), endDateFinal.Format(dateLayout))
 
 	eventKeys := make([]string, len(eventMap))
