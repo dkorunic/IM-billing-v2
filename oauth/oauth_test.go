@@ -22,7 +22,10 @@
 package oauth
 
 import (
+	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -121,6 +124,91 @@ func TestSaveToken_Valid(t *testing.T) {
 
 	if got.RefreshToken != tok.RefreshToken {
 		t.Errorf("RefreshToken: got %q, want %q", got.RefreshToken, tok.RefreshToken)
+	}
+}
+
+// TC-14: an expired token must trigger a refresh attempt via the token endpoint.
+func TestGetClient_ExpiredTokenIsRefreshed(t *testing.T) {
+	const newAccessToken = "refreshed-access-token"
+
+	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"access_token":"` + newAccessToken + `","token_type":"Bearer","expires_in":3600}`))
+	}))
+	defer tokenSrv.Close()
+
+	config := &oauth2.Config{
+		ClientID:     "test-client-id",
+		ClientSecret: "test-client-secret",
+		Endpoint: oauth2.Endpoint{
+			TokenURL: tokenSrv.URL,
+		},
+	}
+
+	expiredTok := &oauth2.Token{
+		AccessToken:  "old-access-token",
+		RefreshToken: "test-refresh-token",
+		TokenType:    "Bearer",
+		Expiry:       time.Now().Add(-time.Hour),
+	}
+
+	tokenPath := filepath.Join(t.TempDir(), "token.json")
+	if err := saveToken(tokenPath, expiredTok); err != nil {
+		t.Fatalf("saveToken: %v", err)
+	}
+
+	client, err := GetClient(context.Background(), config, tokenPath)
+	if err != nil {
+		t.Fatalf("GetClient: %v", err)
+	}
+
+	if client == nil {
+		t.Fatal("expected non-nil HTTP client after refresh")
+	}
+}
+
+// TC-15: after a successful token refresh that returns a different access token,
+// the new token must be persisted to the token file.
+func TestGetClient_RefreshedTokenSavedToFile(t *testing.T) {
+	const newAccessToken = "saved-refreshed-token"
+
+	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"access_token":"` + newAccessToken + `","token_type":"Bearer","expires_in":3600}`))
+	}))
+	defer tokenSrv.Close()
+
+	config := &oauth2.Config{
+		ClientID:     "test-client-id",
+		ClientSecret: "test-client-secret",
+		Endpoint: oauth2.Endpoint{
+			TokenURL: tokenSrv.URL,
+		},
+	}
+
+	expiredTok := &oauth2.Token{
+		AccessToken:  "old-token-before-refresh",
+		RefreshToken: "test-refresh-token",
+		TokenType:    "Bearer",
+		Expiry:       time.Now().Add(-time.Hour),
+	}
+
+	tokenPath := filepath.Join(t.TempDir(), "token.json")
+	if err := saveToken(tokenPath, expiredTok); err != nil {
+		t.Fatalf("saveToken: %v", err)
+	}
+
+	if _, err := GetClient(context.Background(), config, tokenPath); err != nil {
+		t.Fatalf("GetClient: %v", err)
+	}
+
+	savedTok, err := tokenFromFile(tokenPath)
+	if err != nil {
+		t.Fatalf("tokenFromFile after refresh: %v", err)
+	}
+
+	if savedTok.AccessToken != newAccessToken {
+		t.Errorf("AccessToken: got %q, want %q — refreshed token was not saved to file", savedTok.AccessToken, newAccessToken)
 	}
 }
 

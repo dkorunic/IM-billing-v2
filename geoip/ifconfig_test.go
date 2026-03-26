@@ -20,6 +20,7 @@ package geoip_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -128,5 +129,29 @@ func TestGetResponse_ContextCancelled(t *testing.T) {
 	_, err := client.GetResponse()
 	if err == nil {
 		t.Fatal("expected error for cancelled context, got nil")
+	}
+}
+
+// TC-11: GetResponse must return context.Canceled when the context is cancelled,
+// not a generic transport-level error.
+func TestGetResponse_CancelledContextReturnsContextError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	client, _ := geoip.NewClientWithContext(ctx)
+	client.URL, _ = url.Parse(srv.URL)
+
+	_, err := client.GetResponse()
+	if err == nil {
+		t.Fatal("expected error for cancelled context, got nil")
+	}
+
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("expected context.Canceled, got: %v", err)
 	}
 }

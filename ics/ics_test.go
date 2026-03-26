@@ -144,6 +144,54 @@ func TestGetResponse_IncompleteEventSkipped(t *testing.T) {
 	}
 }
 
+// TC-12: Event.Start must equal DTSTART and Event.End must equal DTEND — not swapped.
+func TestConsumeICal_StartAndEndNotSwapped(t *testing.T) {
+	const singleEvent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Test//EN
+BEGIN:VEVENT
+UID:swap-test@test
+DTSTART;VALUE=DATE:20240101
+DTEND;VALUE=DATE:20240102
+SUMMARY:New Year Day
+END:VEVENT
+END:VCALENDAR
+`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(singleEvent))
+	}))
+	defer srv.Close()
+
+	client, _ := ics.NewClientWithContext(context.Background(), "HR")
+	client.URL, _ = url.Parse(srv.URL)
+
+	events, err := client.GetResponse()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	ev := events[0]
+
+	// Start must be DTSTART = 2024-01-01
+	if ev.Start.Year() != 2024 || ev.Start.Month() != 1 || ev.Start.Day() != 1 {
+		t.Errorf("Start: got %v, want 2024-01-01 (DTSTART); Start and End may be swapped", ev.Start)
+	}
+
+	// End must be DTEND = 2024-01-02
+	if ev.End.Year() != 2024 || ev.End.Month() != 1 || ev.End.Day() != 2 {
+		t.Errorf("End: got %v, want 2024-01-02 (DTEND); Start and End may be swapped", ev.End)
+	}
+
+	if !ev.Start.Before(ev.End) {
+		t.Errorf("Start (%v) must be before End (%v); fields may be swapped", ev.Start, ev.End)
+	}
+}
+
 func TestGetResponse_ContextCancelled(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
