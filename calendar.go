@@ -18,8 +18,12 @@ import (
 )
 
 // workEvent holds individual calendar event with aggregate hourly total.
+// workDesc is a *strings.Builder so repeated same-day events append in place
+// instead of re-allocating a new string on every concatenation. A pointer is
+// used because workEvent values are copied on map read/write, and a
+// strings.Builder must not be copied after first use.
 type workEvent struct {
-	workDesc   string
+	workDesc   *strings.Builder
 	hoursTotal int
 }
 
@@ -119,6 +123,11 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 				continue
 			}
 
+			// Start/End are *EventDateTime pointers; skip rather than panic if absent
+			if item.Start == nil || item.End == nil {
+				continue
+			}
+
 			start := item.Start.DateTime
 			if start == "" {
 				start = item.Start.Date
@@ -139,9 +148,9 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 			if searchStringLocal != "" {
 				if !strings.HasPrefix(desc, searchStringLocal) {
 					continue
-				} else {
-					desc = strings.TrimSpace(strings.TrimPrefix(desc, searchStringLocal))
 				}
+
+				desc = strings.TrimSpace(strings.TrimPrefix(desc, searchStringLocal))
 			}
 
 			// Parse individual event and update calendar event map
@@ -182,10 +191,13 @@ func parseCalendarEvent(desc, start, end string, loc *time.Location, eventMap ma
 	// Update calendar event map with either adding work hours or creating a new entry
 	if temp, ok := eventMap[dateKey]; ok {
 		temp.hoursTotal += hours
-		temp.workDesc = temp.workDesc + ", " + desc
+		temp.workDesc.WriteString(", ")
+		temp.workDesc.WriteString(desc)
 		eventMap[dateKey] = temp
 	} else {
-		eventMap[dateKey] = workEvent{workDesc: desc, hoursTotal: hours}
+		b := &strings.Builder{}
+		b.WriteString(desc)
+		eventMap[dateKey] = workEvent{workDesc: b, hoursTotal: hours}
 	}
 
 	return eventMap
@@ -214,23 +226,24 @@ func printMonthlyStats(eventMap map[string]workEvent, holidayMap map[string]holi
 
 	var totalHours int
 
-	// Dash or classic output format
+	// Dash or classic output format; single loop, format strings kept constant
+	// so the vet printf analyzer can verify them
 	if *dashFlag {
 		fmt.Printf("%10s - Hr - Description\n", "Date")
-
-		for _, k := range eventKeys {
-			v := eventMap[k]
-			fmt.Printf("%10s - %dh - %s\n", k, v.hoursTotal, v.workDesc)
-			totalHours += v.hoursTotal
-		}
 	} else {
 		fmt.Printf("%10s\tHr\tDescription\n", "Date")
+	}
 
-		for _, k := range eventKeys {
-			v := eventMap[k]
-			fmt.Printf("%10s\t%2d\t%s\n", k, v.hoursTotal, v.workDesc)
-			totalHours += v.hoursTotal
+	for _, k := range eventKeys {
+		v := eventMap[k]
+
+		if *dashFlag {
+			fmt.Printf("%10s - %dh - %s\n", k, v.hoursTotal, v.workDesc.String())
+		} else {
+			fmt.Printf("%10s\t%2d\t%s\n", k, v.hoursTotal, v.workDesc.String())
 		}
+
+		totalHours += v.hoursTotal
 	}
 
 	// Total cumulative statistics
@@ -266,13 +279,13 @@ func getHolidayEvents(ctx context.Context) map[string]holidayEvent {
 		defer cancelGeoip()
 
 		// Initialize GeoIP/ifconfig HTTP client
-		ifconfigClient, err := geoip.NewClientWithContext(ctxGeoip)
+		ifconfigClient, err := geoip.NewClient()
 		if err != nil {
 			return
 		}
 
 		// Fetch and parse JSON from ifconfig
-		geoIP, err := ifconfigClient.GetResponse()
+		geoIP, err := ifconfigClient.GetResponse(ctxGeoip)
 		if err != nil {
 			return
 		}
@@ -286,13 +299,13 @@ func getHolidayEvents(ctx context.Context) map[string]holidayEvent {
 		defer cancelIcs()
 
 		// Initialize ICS HTTP client
-		icsClient, err := ics.NewClientWithContext(ctxIcs, geoIP.CountryISO)
+		icsClient, err := ics.NewClient(geoIP.CountryISO)
 		if err != nil {
 			return
 		}
 
 		// Fetch and parse ICS response
-		cal, err := icsClient.GetResponse()
+		cal, err := icsClient.GetResponse(ctxIcs)
 		if err != nil {
 			return
 		}

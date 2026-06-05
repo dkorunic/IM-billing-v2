@@ -48,7 +48,6 @@ func newInternalTestClient(body string, status int, closeErr error) *Client {
 			closeErr: closeErr,
 		}},
 		URL: u,
-		ctx: context.Background(),
 	}
 }
 
@@ -60,7 +59,7 @@ func TestGetResponse_CloseErrorPropagated(t *testing.T) {
 
 	c := newInternalTestClient(validJSON, http.StatusOK, closeErr)
 
-	resp, err := c.GetResponse()
+	resp, err := c.GetResponse(context.Background())
 
 	if !errors.Is(err, closeErr) {
 		t.Errorf("expected close error to be propagated, got: %v", err)
@@ -76,7 +75,7 @@ func TestGetResponse_CloseErrorPropagated(t *testing.T) {
 func TestGetResponse_DecodeErrorNotMaskedByNilClose(t *testing.T) {
 	c := newInternalTestClient(`{not valid json`, http.StatusOK, nil)
 
-	_, err := c.GetResponse()
+	_, err := c.GetResponse(context.Background())
 
 	if err == nil {
 		t.Error("expected decode error to be returned, got nil — decode error was masked by nil close error")

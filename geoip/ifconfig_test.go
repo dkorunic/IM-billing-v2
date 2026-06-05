@@ -16,8 +16,8 @@ import (
 	"github.com/dkorunic/IM-billing-v2/geoip"
 )
 
-func TestNewClientWithContext(t *testing.T) {
-	client, err := geoip.NewClientWithContext(context.Background())
+func TestNewClient(t *testing.T) {
+	client, err := geoip.NewClient()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -42,10 +42,10 @@ func TestGetResponse_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client, _ := geoip.NewClientWithContext(context.Background())
+	client, _ := geoip.NewClient()
 	client.URL, _ = url.Parse(srv.URL)
 
-	resp, err := client.GetResponse()
+	resp, err := client.GetResponse(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -72,10 +72,10 @@ func TestGetResponse_HTTPError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client, _ := geoip.NewClientWithContext(context.Background())
+	client, _ := geoip.NewClient()
 	client.URL, _ = url.Parse(srv.URL)
 
-	_, err := client.GetResponse()
+	_, err := client.GetResponse(context.Background())
 	if err == nil {
 		t.Fatal("expected error for non-200 response, got nil")
 	}
@@ -91,10 +91,10 @@ func TestGetResponse_InvalidJSON(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client, _ := geoip.NewClientWithContext(context.Background())
+	client, _ := geoip.NewClient()
 	client.URL, _ = url.Parse(srv.URL)
 
-	_, err := client.GetResponse()
+	_, err := client.GetResponse(context.Background())
 	if err == nil {
 		t.Fatal("expected error for invalid JSON, got nil")
 	}
@@ -109,10 +109,10 @@ func TestGetResponse_ContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel before making the request
 
-	client, _ := geoip.NewClientWithContext(ctx)
+	client, _ := geoip.NewClient()
 	client.URL, _ = url.Parse(srv.URL)
 
-	_, err := client.GetResponse()
+	_, err := client.GetResponse(ctx)
 	if err == nil {
 		t.Fatal("expected error for cancelled context, got nil")
 	}
@@ -129,10 +129,10 @@ func TestGetResponse_CancelledContextReturnsContextError(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	client, _ := geoip.NewClientWithContext(ctx)
+	client, _ := geoip.NewClient()
 	client.URL, _ = url.Parse(srv.URL)
 
-	_, err := client.GetResponse()
+	_, err := client.GetResponse(ctx)
 	if err == nil {
 		t.Fatal("expected error for cancelled context, got nil")
 	}

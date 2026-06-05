@@ -39,31 +39,23 @@ type Response struct {
 type Client struct {
 	httpClient *http.Client
 	URL        *url.URL
-	ctx        context.Context
 }
 
 // NewClient prepares HTTP client structure for Ifconfig API request.
 func NewClient() (*Client, error) {
-	ctx := context.Background()
-
-	return NewClientWithContext(ctx)
-}
-
-// NewClientWithContext prepares HTTP client structure for Ifconfig API request with ctx Context.
-func NewClientWithContext(ctx context.Context) (*Client, error) {
 	ifconfigURL, err := url.Parse(URL)
 	if err != nil {
 		return nil, err
 	}
 
-	c := &Client{httpClient: &http.Client{}, URL: ifconfigURL, ctx: ctx}
+	c := &Client{httpClient: &http.Client{}, URL: ifconfigURL}
 
 	return c, nil
 }
 
 // GetResponse fetches a HTTP response with JSON body from ifconfig.co site and parses it.
-func (c *Client) GetResponse() (geoip Response, err error) {
-	req, err := http.NewRequestWithContext(c.ctx, http.MethodGet, c.URL.String(), nil)
+func (c *Client) GetResponse(ctx context.Context) (geoip Response, err error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.URL.String(), nil)
 	if err != nil {
 		return Response{}, err
 	}
@@ -72,8 +64,8 @@ func (c *Client) GetResponse() (geoip Response, err error) {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		select {
-		case <-c.ctx.Done():
-			return Response{}, c.ctx.Err()
+		case <-ctx.Done():
+			return Response{}, ctx.Err()
 		default:
 			return Response{}, err
 		}

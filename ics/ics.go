@@ -30,7 +30,6 @@ var ErrNilBody = errors.New("client body is nil")
 type Client struct {
 	httpClient *http.Client
 	URL        *url.URL
-	ctx        context.Context
 }
 
 // Event is an individual parsed ICS event for ICS decoder.
@@ -75,26 +74,19 @@ func (e *Events) ConsumeICal(c *goics.Calendar, _ error) error {
 
 // NewClient creates a HTTP client structure for ICS fetch/parse.
 func NewClient(countryCode string) (*Client, error) {
-	ctx := context.Background()
-
-	return NewClientWithContext(ctx, countryCode)
-}
-
-// NewClientWithContext creates a HTTP client structure for ICS fetch/parse with ctx Context.
-func NewClientWithContext(ctx context.Context, countryCode string) (*Client, error) {
 	IcsURL, err := url.Parse(fmt.Sprintf(URL, url.QueryEscape(countryCode)))
 	if err != nil {
 		return nil, err
 	}
 
-	c := &Client{httpClient: &http.Client{}, URL: IcsURL, ctx: ctx}
+	c := &Client{httpClient: &http.Client{}, URL: IcsURL}
 
 	return c, nil
 }
 
 // GetResponse fetches a HTTP response from officeholldays site with country-local ICS as a body.
-func (c *Client) GetResponse() (evs Events, err error) {
-	req, err := http.NewRequestWithContext(c.ctx, http.MethodGet, c.URL.String(), nil)
+func (c *Client) GetResponse(ctx context.Context) (evs Events, err error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.URL.String(), nil)
 	if err != nil {
 		return Events{}, err
 	}
@@ -103,8 +95,8 @@ func (c *Client) GetResponse() (evs Events, err error) {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		select {
-		case <-c.ctx.Done():
-			return Events{}, c.ctx.Err()
+		case <-ctx.Done():
+			return Events{}, ctx.Err()
 		default:
 			return Events{}, err
 		}

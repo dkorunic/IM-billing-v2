@@ -30,7 +30,7 @@ var (
 )
 
 const (
-	DefaultApiTimeout  = 60 * time.Second
+	DefaultAPITimeout  = 60 * time.Second
 	DefaultCredentials = "assets/credentials.json"
 	maxMemRatio        = 0.9
 )
@@ -119,7 +119,7 @@ func parseArgs() {
 
 	_ = fs.StringLong("config", "", "config file (optional)")
 
-	apiTimeout = fs.Duration('t', "timeout", DefaultApiTimeout, "Google Calendar API timeout")
+	apiTimeout = fs.Duration('t', "timeout", DefaultAPITimeout, "Google Calendar API timeout")
 
 	helpFlag = fs.Bool('h', "help", "display help")
 	dashFlag = fs.Bool('d', "dash", "use dashes when printing totals")

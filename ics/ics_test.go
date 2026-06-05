@@ -52,8 +52,8 @@ END:VEVENT
 END:VCALENDAR
 `
 
-func TestNewClientWithContext(t *testing.T) {
-	client, err := ics.NewClientWithContext(context.Background(), "HR")
+func TestNewClient(t *testing.T) {
+	client, err := ics.NewClient("HR")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -74,10 +74,10 @@ func TestGetResponse_ValidICS(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client, _ := ics.NewClientWithContext(context.Background(), "HR")
+	client, _ := ics.NewClient("HR")
 	client.URL, _ = url.Parse(srv.URL)
 
-	events, err := client.GetResponse()
+	events, err := client.GetResponse(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -112,10 +112,10 @@ func TestGetResponse_IncompleteEventSkipped(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client, _ := ics.NewClientWithContext(context.Background(), "HR")
+	client, _ := ics.NewClient("HR")
 	client.URL, _ = url.Parse(srv.URL)
 
-	events, err := client.GetResponse()
+	events, err := client.GetResponse(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -149,10 +149,10 @@ END:VCALENDAR
 	}))
 	defer srv.Close()
 
-	client, _ := ics.NewClientWithContext(context.Background(), "HR")
+	client, _ := ics.NewClient("HR")
 	client.URL, _ = url.Parse(srv.URL)
 
-	events, err := client.GetResponse()
+	events, err := client.GetResponse(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -187,10 +187,10 @@ func TestGetResponse_ContextCancelled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel before making the request
 
-	client, _ := ics.NewClientWithContext(ctx, "HR")
+	client, _ := ics.NewClient("HR")
 	client.URL, _ = url.Parse(srv.URL)
 
-	_, err := client.GetResponse()
+	_, err := client.GetResponse(ctx)
 	if err == nil {
 		t.Fatal("expected error for cancelled context, got nil")
 	}

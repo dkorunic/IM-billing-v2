@@ -16,6 +16,14 @@ import (
 // fixed start time used across rounding sub-tests.
 const roundingStart = "2024-01-15T09:00:00+00:00"
 
+// descBuilder wraps a string in a *strings.Builder for workEvent literals.
+func descBuilder(s string) *strings.Builder {
+	b := &strings.Builder{}
+	b.WriteString(s)
+
+	return b
+}
+
 func TestParseCalendarEvent_NewEvent(t *testing.T) {
 	eventMap := make(map[string]workEvent)
 
@@ -40,8 +48,8 @@ func TestParseCalendarEvent_NewEvent(t *testing.T) {
 		t.Errorf("hoursTotal: got %d, want 8", ev.hoursTotal)
 	}
 
-	if ev.workDesc != "Work on project" {
-		t.Errorf("workDesc: got %q, want %q", ev.workDesc, "Work on project")
+	if ev.workDesc.String() != "Work on project" {
+		t.Errorf("workDesc: got %q, want %q", ev.workDesc.String(), "Work on project")
 	}
 }
 
@@ -61,8 +69,9 @@ func TestParseCalendarEvent_AccumulateSameDay(t *testing.T) {
 		t.Errorf("hoursTotal: got %d, want 8", ev.hoursTotal)
 	}
 
-	if !strings.Contains(ev.workDesc, "Morning") || !strings.Contains(ev.workDesc, "Afternoon") {
-		t.Errorf("workDesc missing expected parts: %q", ev.workDesc)
+	desc := ev.workDesc.String()
+	if !strings.Contains(desc, "Morning") || !strings.Contains(desc, "Afternoon") {
+		t.Errorf("workDesc missing expected parts: %q", desc)
 	}
 }
 
@@ -185,8 +194,8 @@ func TestPrintMonthlyStats_HolidayOverlapDetection(t *testing.T) {
 	endDateFinal = time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC)
 
 	eventMap := map[string]workEvent{
-		"2024-01-15": {workDesc: "Holiday work", hoursTotal: 8},
-		"2024-01-20": {workDesc: "Normal work", hoursTotal: 8},
+		"2024-01-15": {workDesc: descBuilder("Holiday work"), hoursTotal: 8},
+		"2024-01-20": {workDesc: descBuilder("Normal work"), hoursTotal: 8},
 	}
 	holidayMap := map[string]holidayEvent{
 		"2024-01-15": {holidayDesc: "Public Holiday"},  // overlap: work event exists
@@ -243,7 +252,7 @@ func TestParseCalendarEvent_DescriptionConcatenation(t *testing.T) {
 	ev := eventMap["2024-01-15"]
 	want := "First, Second, Third"
 
-	if ev.workDesc != want {
-		t.Errorf("workDesc: got %q, want %q", ev.workDesc, want)
+	if ev.workDesc.String() != want {
+		t.Errorf("workDesc: got %q, want %q", ev.workDesc.String(), want)
 	}
 }
