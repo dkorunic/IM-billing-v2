@@ -120,14 +120,14 @@ func TestParseCalendarEvent_HourRounding(t *testing.T) {
 		end       string
 		wantHours int
 	}{
-		// 2h00m — exact, no rounding
+		// 2h00m
 		{"exact two hours", "2024-01-15T11:00:00+00:00", 2},
-		// 2h30m — ties round up per time.Duration.Round semantics
+		// 2h30m
 		{"half hour rounds up", "2024-01-15T11:30:00+00:00", 3},
-		// 2h29m — below half, rounds down
-		{"below half rounds down", "2024-01-15T11:29:00+00:00", 2},
-		// 2h31m — above half, rounds up
-		{"above half rounds up", "2024-01-15T11:31:00+00:00", 3},
+		// 2h01m
+		{"one minute rounds up", "2024-01-15T11:01:00+00:00", 3},
+		// 2h59m
+		{"below next hour rounds up", "2024-01-15T11:59:00+00:00", 3},
 	}
 
 	for _, tc := range tests {

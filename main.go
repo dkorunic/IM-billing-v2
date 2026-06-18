@@ -81,29 +81,31 @@ func main() {
 		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
 
+	// Bound API work by the timeout; OAuth stays un-timed so login is excluded.
+	// A derived context cancels in-flight requests, unlike a bare timer.
+	apiCtx, apiCancel := context.WithTimeout(ctxWithCancel, *apiTimeout)
+	defer apiCancel()
+
 	chanCalendar := make(chan struct{}, 1)
-	chanHolidays := make(chan map[string]holidayEvent)
+	chanHolidays := make(chan map[string]holidayEvent, 1)
 
 	// Fetch Office holiday events
 	go func() {
-		chanHolidays <- getHolidayEvents(ctxWithCancel)
+		chanHolidays <- getHolidayEvents(apiCtx)
 	}()
 
 	// Fetch Calendar events and display them
 	go func() {
-		eventMap := getCalendarEvents(srv, calendarName)
+		eventMap := getCalendarEvents(apiCtx, srv, calendarName)
 		holidayMap := <-chanHolidays
 		printMonthlyStats(eventMap, holidayMap)
 		chanCalendar <- struct{}{}
 	}()
 
-	delay := time.NewTimer(*apiTimeout)
-	defer delay.Stop()
-
-	// API timeout handler: wait for *apiTimeout duration until erroring out
+	// Wait for completion or timeout
 	select {
 	case <-chanCalendar:
-	case <-delay.C:
+	case <-apiCtx.Done():
 		log.Fatal("Timeout fetching Google calendar API... Exiting.")
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"slices"
 	"strings"
 	"time"
@@ -39,7 +40,7 @@ const dateLayout = "2006-01-02"
 const calendarMaxResults = 200
 
 // getCalendarID gets a Google calendar ID out of a symbolic calendar name.
-func getCalendarID(srv *calendar.Service, calendarName *string) string {
+func getCalendarID(ctx context.Context, srv *calendar.Service, calendarName *string) string {
 	// If the calendar name is not specified, use default (primary) calendar
 	if *calendarName == "" {
 		return "primary"
@@ -53,7 +54,8 @@ func getCalendarID(srv *calendar.Service, calendarName *string) string {
 	for {
 		calendarsCall := srv.CalendarList.List().
 			MaxResults(calendarMaxResults).
-			PageToken(nextPageToken)
+			PageToken(nextPageToken).
+			Context(ctx)
 
 		listCal, err := calendarsCall.Do()
 		if err != nil {
@@ -82,9 +84,9 @@ func getCalendarID(srv *calendar.Service, calendarName *string) string {
 }
 
 // getCalendarEvents gets all calendar events for a calendar ID and a date range.
-func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]workEvent {
+func getCalendarEvents(ctx context.Context, srv *calendar.Service, calendarName *string) map[string]workEvent {
 	// Fetch calendar ID
-	calID := getCalendarID(srv, calendarName)
+	calID := getCalendarID(ctx, srv, calendarName)
 	if calID == "" {
 		log.Fatalf("Unable to find calendar ID for %q", *calendarName)
 	}
@@ -110,7 +112,8 @@ func getCalendarEvents(srv *calendar.Service, calendarName *string) map[string]w
 			TimeMax(timeMax).
 			MaxResults(calendarMaxResults).
 			OrderBy("startTime").
-			PageToken(nextPageToken)
+			PageToken(nextPageToken).
+			Context(ctx)
 
 		events, err := eventsCall.Do()
 		if err != nil {
@@ -186,7 +189,7 @@ func parseCalendarEvent(desc, start, end string, loc *time.Location, eventMap ma
 
 	dateKey := startTime.Format(dateLayout) // Starting time is an event key
 	workDuration := endTime.Sub(startTime)
-	hours := int(workDuration.Round(time.Hour).Hours()) // Round to hours
+	hours := int(math.Ceil(workDuration.Hours())) // Bill partial hours as full hours
 
 	// Update calendar event map with either adding work hours or creating a new entry
 	if temp, ok := eventMap[dateKey]; ok {

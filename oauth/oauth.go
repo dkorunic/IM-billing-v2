@@ -44,7 +44,6 @@ var (
 	ErrOAuthHTTPServer    = errors.New("unable to start HTTP server")
 	ErrOAuthBrowser       = errors.New("unable to open system browser")
 	ErrOAuthTimeout       = errors.New("timeout while waiting for authentication to finish")
-	ErrOAuthStateMismatch = errors.New("OAuth state parameter mismatch: possible CSRF attack")
 	ErrOAuthTokenFetch    = errors.New("unable to retrieve token from Google API")
 	ErrOAuthTokenSave     = errors.New("unable to save token to file")
 	ErrOAuthTokenEncode   = errors.New("unable to encode OAuth token to JSON")
@@ -139,10 +138,10 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 	// oauth callback handler
 	r := chi.NewRouter()
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		if actualState := r.URL.Query().Get("state"); actualState != authReqState.String() {
+		// Reject mismatched state but keep waiting; a stray or CSRF request
+		// must not consume the one-shot success path or abort the flow.
+		if r.URL.Query().Get("state") != authReqState.String() {
 			http.Error(w, "Invalid authentication state", http.StatusUnauthorized)
-
-			once.Do(func() { errChan <- ErrOAuthStateMismatch })
 
 			return
 		}
