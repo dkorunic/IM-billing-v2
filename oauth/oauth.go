@@ -39,14 +39,14 @@ const (
 )
 
 var (
-	ErrOAuthUUID          = errors.New("unable to generate UUID")
-	ErrOAuthFreePort      = errors.New("unable to get a free port")
-	ErrOAuthHTTPServer    = errors.New("unable to start HTTP server")
-	ErrOAuthBrowser       = errors.New("unable to open system browser")
-	ErrOAuthTimeout       = errors.New("timeout while waiting for authentication to finish")
-	ErrOAuthTokenFetch    = errors.New("unable to retrieve token from Google API")
-	ErrOAuthTokenSave     = errors.New("unable to save token to file")
-	ErrOAuthTokenEncode   = errors.New("unable to encode OAuth token to JSON")
+	ErrOAuthUUID        = errors.New("unable to generate UUID")
+	ErrOAuthFreePort    = errors.New("unable to get a free port")
+	ErrOAuthHTTPServer  = errors.New("unable to start HTTP server")
+	ErrOAuthBrowser     = errors.New("unable to open system browser")
+	ErrOAuthTimeout     = errors.New("timeout while waiting for authentication to finish")
+	ErrOAuthTokenFetch  = errors.New("unable to retrieve token from Google API")
+	ErrOAuthTokenSave   = errors.New("unable to save token to file")
+	ErrOAuthTokenEncode = errors.New("unable to encode OAuth token to JSON")
 )
 
 // GetClient returns an authenticated HTTP client, loading the token from tokenPath,
