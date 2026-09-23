@@ -40,7 +40,7 @@ var credentialFS embed.FS
 
 func main() {
 	// configure GOMEMLIMIT to 90% of available memory (Cgroups v2/v1 or system)
-	_, _ = memlimit.SetGoMemLimitWithOpts(
+	_, _ = memlimit.Set(
 		memlimit.WithRatio(maxMemRatio),
 		memlimit.WithProvider(
 			memlimit.ApplyFallback(

@@ -39,6 +39,7 @@ tasks:
     cmds:
       - gci write .
       - gofumpt -l -w .
+      - go fix ./...
       - betteralign -apply ./...
 
   build:
