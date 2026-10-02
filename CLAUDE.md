@@ -26,7 +26,7 @@ go test ./oauth/...             # oauth package
 go test -run TestParseCalendarEvent ./...  # run a specific test
 ```
 
-Tests use `net/http/httptest` to stub HTTP endpoints; no live network required. `oauth/oauth_test.go` is in `package oauth` (white-box) to access unexported `tokenFromFile` and `saveToken`. All other test packages use the `_test` suffix for black-box testing.
+Tests use `net/http/httptest` to stub HTTP endpoints; no live network required. `oauth/oauth_internal_test.go` and `geoip/ifconfig_internal_test.go` are white-box (`_internal_test.go` suffix satisfies `testpackage`) to access unexported identifiers. All other test packages use the `_test` suffix for black-box testing.
 
 Linting uses golangci-lint v2 with `default: all` and a set of disabled linters (see `.golangci.yml`). Formatters enforced: `gci`, `gofmt`, `gofumpt`, `goimports`.
 

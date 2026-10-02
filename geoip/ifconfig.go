@@ -23,14 +23,17 @@ const (
 	DefaultTimeout = 10 * time.Second
 )
 
-var ErrNilBody = errors.New("client body is nil")
+var (
+	ErrNilBody    = errors.New("client body is nil")
+	ErrHTTPStatus = errors.New("unexpected HTTP status")
+)
 
 // Response is a structure for parsed ifconfig.co JSON response.
 type Response struct {
 	IP         string      `json:"ip"`
-	IPdecimal  json.Number `json:"ip_decimal"`
+	IPdecimal  json.Number `json:"ip_decimal"` //nolint:tagliatelle // ifconfig.co field name
 	Country    string      `json:"country"`
-	CountryISO string      `json:"country_iso"`
+	CountryISO string      `json:"country_iso"` //nolint:tagliatelle // ifconfig.co field name
 	City       string      `json:"city"`
 	Hostname   string      `json:"hostname"`
 }
@@ -54,7 +57,7 @@ func NewClient() (*Client, error) {
 }
 
 // GetResponse fetches a HTTP response with JSON body from ifconfig.co site and parses it.
-func (c *Client) GetResponse(ctx context.Context) (geoip Response, err error) {
+func (c *Client) GetResponse(ctx context.Context) (geoip Response, err error) { //nolint:nonamedreturns // deferred Close sets err
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.URL.String(), nil)
 	if err != nil {
 		return Response{}, err
@@ -87,7 +90,7 @@ func (c *Client) GetResponse(ctx context.Context) (geoip Response, err error) {
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 20<<20))
 
-		return Response{}, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
+		return Response{}, fmt.Errorf("%w: HTTP %d: %s", ErrHTTPStatus, resp.StatusCode, string(body))
 	}
 
 	// Stream-decode JSON directly from response body

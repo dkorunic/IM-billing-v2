@@ -15,9 +15,12 @@ import (
 	"testing"
 )
 
+var errDeliberateClose = errors.New("deliberate close error")
+
 // errCloseBody wraps an io.Reader and returns a pre-configured error from Close.
 type errCloseBody struct {
 	io.Reader
+
 	closeErr error
 }
 
@@ -54,7 +57,9 @@ func newInternalTestClient(body string, status int, closeErr error) *Client {
 // TC-10a: when JSON decode succeeds but Close() returns an error, the close error
 // must be propagated and the decoded data must still be present in the return value.
 func TestGetResponse_CloseErrorPropagated(t *testing.T) {
-	closeErr := errors.New("deliberate close error")
+	t.Parallel()
+
+	closeErr := errDeliberateClose
 	validJSON := `{"ip":"1.2.3.4","country":"Croatia","country_iso":"HR","city":"Zagreb"}`
 
 	c := newInternalTestClient(validJSON, http.StatusOK, closeErr)
@@ -73,10 +78,11 @@ func TestGetResponse_CloseErrorPropagated(t *testing.T) {
 // TC-10b: when JSON decode fails but Close() returns nil, the decode error must not
 // be masked. A nil close error must not overwrite a prior non-nil decode error.
 func TestGetResponse_DecodeErrorNotMaskedByNilClose(t *testing.T) {
+	t.Parallel()
+
 	c := newInternalTestClient(`{not valid json`, http.StatusOK, nil)
 
 	_, err := c.GetResponse(context.Background())
-
 	if err == nil {
 		t.Error("expected decode error to be returned, got nil — decode error was masked by nil close error")
 	}

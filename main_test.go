@@ -12,8 +12,11 @@ import (
 
 // TC-18: without explicit --start/--end flags, startDateFinal must be the 1st of
 // the previous month and endDateFinal must be the 1st of the current month.
+//
+//nolint:paralleltest // mutates os.Args and package globals
 func TestParseArgs_DefaultDates(t *testing.T) {
 	origArgs := os.Args
+
 	t.Cleanup(func() { os.Args = origArgs })
 
 	os.Args = []string{"IM-billing-v2"}
@@ -35,8 +38,11 @@ func TestParseArgs_DefaultDates(t *testing.T) {
 }
 
 // TC-19 (valid path): a date range where end > start must be accepted without fataling.
+//
+//nolint:paralleltest // mutates os.Args and package globals
 func TestParseArgs_ValidDateRangeAccepted(t *testing.T) {
 	origArgs := os.Args
+
 	t.Cleanup(func() { os.Args = origArgs })
 
 	os.Args = []string{"IM-billing-v2", "--start", "2024-01-01", "--end", "2024-02-01"}

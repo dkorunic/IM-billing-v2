@@ -6,6 +6,7 @@ linters:
     - depguard
     - dupl
     - exhaustruct
+    - exhaustruct_v5
     - forbidigo
     - funlen
     - gochecknoglobals
@@ -14,6 +15,10 @@ linters:
     - mnd
     - varnamelen
     - wrapcheck
+    - wsl
+  settings:
+    gosmopolitan:
+      allow-time-local: true
   exclusions:
     generated: lax
     presets:

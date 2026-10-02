@@ -24,7 +24,10 @@ const (
 	DefaultTimeout = 10 * time.Second
 )
 
-var ErrNilBody = errors.New("client body is nil")
+var (
+	ErrNilBody    = errors.New("client body is nil")
+	ErrHTTPStatus = errors.New("unexpected HTTP status")
+)
 
 // Client is an ICS HTTP client for remote fetching/parsing ICS calendar.
 type Client struct {
@@ -85,7 +88,7 @@ func NewClient(countryCode string) (*Client, error) {
 }
 
 // GetResponse fetches a HTTP response from officeholldays site with country-local ICS as a body.
-func (c *Client) GetResponse(ctx context.Context) (evs Events, err error) {
+func (c *Client) GetResponse(ctx context.Context) (evs Events, err error) { //nolint:nonamedreturns // deferred Close sets err
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.URL.String(), nil)
 	if err != nil {
 		return Events{}, err
@@ -118,7 +121,7 @@ func (c *Client) GetResponse(ctx context.Context) (evs Events, err error) {
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 20<<20))
 
-		return Events{}, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
+		return Events{}, fmt.Errorf("%w: HTTP %d: %s", ErrHTTPStatus, resp.StatusCode, string(body))
 	}
 
 	d := goics.NewDecoder(io.LimitReader(resp.Body, 20<<20))

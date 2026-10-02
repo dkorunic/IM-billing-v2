@@ -53,6 +53,8 @@ END:VCALENDAR
 `
 
 func TestNewClient(t *testing.T) {
+	t.Parallel()
+
 	client, err := ics.NewClient("HR")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -68,7 +70,9 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestGetResponse_ValidICS(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/calendar")
 		_, _ = w.Write([]byte(validICS))
 	}))
@@ -106,7 +110,9 @@ func TestGetResponse_ValidICS(t *testing.T) {
 }
 
 func TestGetResponse_IncompleteEventSkipped(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/calendar")
 		_, _ = w.Write([]byte(incompleteICS))
 	}))
@@ -132,6 +138,8 @@ func TestGetResponse_IncompleteEventSkipped(t *testing.T) {
 
 // TC-12: Event.Start must equal DTSTART and Event.End must equal DTEND — not swapped.
 func TestConsumeICal_StartAndEndNotSwapped(t *testing.T) {
+	t.Parallel()
+
 	const singleEvent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Test//EN
@@ -144,7 +152,7 @@ END:VEVENT
 END:VCALENDAR
 `
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(singleEvent))
 	}))
 	defer srv.Close()
@@ -179,7 +187,9 @@ END:VCALENDAR
 }
 
 func TestGetResponse_ContextCancelled(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()

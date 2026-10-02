@@ -177,6 +177,7 @@ func parseCalendarEvent(desc, start, end string, loc *time.Location, eventMap ma
 	startTime, err := time.ParseInLocation(time.RFC3339, start, loc)
 	if err != nil {
 		log.Printf("Skipping event %q: unable to parse start time %q (all-day events without a time component are not supported)", desc, start)
+
 		return eventMap
 	}
 
@@ -184,6 +185,7 @@ func parseCalendarEvent(desc, start, end string, loc *time.Location, eventMap ma
 	endTime, err := time.ParseInLocation(time.RFC3339, end, loc)
 	if err != nil {
 		log.Printf("Skipping event %q: unable to parse end time %q (all-day events without a time component are not supported)", desc, end)
+
 		return eventMap
 	}
 

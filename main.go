@@ -7,6 +7,7 @@ package main
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -31,9 +32,11 @@ var (
 
 const (
 	DefaultAPITimeout  = 60 * time.Second
-	DefaultCredentials = "assets/credentials.json"
+	DefaultCredentials = "assets/credentials.json" //nolint:gosec // embedded asset path, not a secret
 	maxMemRatio        = 0.9
 )
+
+var ErrAPITimeout = errors.New("timeout fetching Google calendar API")
 
 //go:embed assets/credentials.json
 var credentialFS embed.FS
@@ -52,6 +55,15 @@ func main() {
 
 	parseArgs()
 
+	err := run()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+// run fetches calendar and holiday events and prints stats; it returns instead
+// of exiting so deferred cancels always execute.
+func run() error {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunction := context.WithCancel(ctx)
 
@@ -60,25 +72,25 @@ func main() {
 	// Load Calendar API credentials
 	b, err := credentialFS.ReadFile(DefaultCredentials)
 	if err != nil {
-		log.Fatalf("Unable to read credentials file: %v", err)
+		return fmt.Errorf("unable to read credentials file: %w", err)
 	}
 
 	// Parse Calendar API credentials
 	config, err := google.ConfigFromJSON(b, calendar.CalendarReadonlyScope)
 	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
+		return fmt.Errorf("unable to parse client secret file to config: %w", err)
 	}
 
 	// Retrieve Calendar API user token
 	client, err := oauth.GetClient(ctxWithCancel, config, "token.json")
 	if err != nil {
-		log.Fatalf("Unable to retrieve token: %v", err)
+		return fmt.Errorf("unable to retrieve token: %w", err)
 	}
 
 	// Initialize Calendar client
 	srv, err := calendar.NewService(ctxWithCancel, option.WithHTTPClient(client))
 	if err != nil {
-		log.Fatalf("Unable to retrieve Calendar client: %v", err)
+		return fmt.Errorf("unable to retrieve Calendar client: %w", err)
 	}
 
 	// Bound API work by the timeout; OAuth stays un-timed so login is excluded.
@@ -99,14 +111,16 @@ func main() {
 		eventMap := getCalendarEvents(apiCtx, srv, calendarName)
 		holidayMap := <-chanHolidays
 		printMonthlyStats(eventMap, holidayMap)
+
 		chanCalendar <- struct{}{}
 	}()
 
 	// Wait for completion or timeout
 	select {
 	case <-chanCalendar:
+		return nil
 	case <-apiCtx.Done():
-		log.Fatal("Timeout fetching Google calendar API... Exiting.")
+		return ErrAPITimeout
 	}
 }
 
@@ -127,10 +141,11 @@ func parseArgs() {
 	dashFlag = fs.Bool('d', "dash", "use dashes when printing totals")
 	includeRecurring = fs.Bool('r', "recurring", "include recurring events")
 
-	if err := ff.Parse(fs, os.Args[1:],
+	err := ff.Parse(fs, os.Args[1:],
 		ff.WithEnvVarPrefix("IMB"),
 		ff.WithConfigFileFlag("config"),
-		ff.WithConfigFileParser(ffyaml.Parser{}.Parse)); err != nil {
+		ff.WithConfigFileParser(ffyaml.Parser{}.Parse))
+	if err != nil {
 		fmt.Printf("%s\n", ffhelp.Flags(fs))
 		fmt.Printf("Error: %v\n", err)
 

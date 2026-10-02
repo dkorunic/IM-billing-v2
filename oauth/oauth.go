@@ -53,44 +53,28 @@ var (
 // refreshing it if expired, or running the interactive browser flow if needed.
 func GetClient(ctx context.Context, config *oauth2.Config, tokenPath string) (*http.Client, error) {
 	tok, err := tokenFromFile(tokenPath)
-	saveToFile := false
+	if err == nil && tok.Valid() {
+		return config.Client(ctx, tok), nil
+	}
 
+	// we have a token, but it has expired so attempt to refresh it
 	if err == nil {
-		// we have a token, but it has expired so attempt to refresh it
-		if !tok.Valid() {
-			src := config.TokenSource(ctx, tok)
+		tok, err = config.TokenSource(ctx, tok).Token()
+	}
 
-			// refresh token
-			newTok, err := src.Token()
-			if err != nil {
-				// Refresh failed (e.g. missing or revoked refresh token);
-				// fall back to interactive browser flow
-				tok, err = getTokenFromWeb(ctx, config)
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				// token has been refreshed, always persist it to capture any
-				// updated expiry or rotated refresh token
-				tok = newTok
-			}
-
-			saveToFile = true
-		}
-	} else {
-		// we don't have a token, so we will obtain interactively
+	// no usable token or refresh failed (e.g. missing or revoked refresh token);
+	// fall back to interactive browser flow
+	if err != nil {
 		tok, err = getTokenFromWeb(ctx, config)
 		if err != nil {
 			return nil, err
 		}
-
-		saveToFile = true
 	}
 
-	if saveToFile {
-		if err = saveToken(tokenPath, tok); err != nil {
-			return nil, err
-		}
+	// always persist a new token to capture updated expiry or rotated refresh token
+	err = saveToken(tokenPath, tok)
+	if err != nil {
+		return nil, err
 	}
 
 	return config.Client(ctx, tok), nil
@@ -129,9 +113,12 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 		ReadHeaderTimeout: ReadHeaderTimeout,
 		Addr:              authListenHost,
 	}
+
 	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		// detach from ctx cancellation so shutdown still runs after ctx is done
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 		defer cancel()
+
 		_ = s.Shutdown(shutdownCtx)
 	}()
 
@@ -151,6 +138,7 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 		})
 
 		_, _ = io.WriteString(w, "Authentication complete, you can close this window.\n")
+
 		if f, ok := w.(http.Flusher); ok {
 			f.Flush()
 		}
@@ -160,7 +148,8 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 
 	// oauth callback server
 	go func() {
-		if err := s.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		err := s.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			once.Do(func() { errChan <- fmt.Errorf("%w: %w", ErrOAuthHTTPServer, err) })
 		}
 	}()
@@ -169,7 +158,8 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token,
 	log.Printf("Opening auth URL through system browser: %v", authCodeURL)
 
 	// oauth dialog through system browser
-	if err := browser.OpenURL(authCodeURL); err != nil {
+	err = browser.OpenURL(authCodeURL)
+	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrOAuthBrowser, err)
 	}
 
@@ -213,12 +203,13 @@ func tokenFromFile(tokenPath string) (*oauth2.Token, error) {
 func saveToken(tokenPath string, token *oauth2.Token) error {
 	buf := new(bytes.Buffer)
 
-	err := json.NewEncoder(buf).Encode(token)
+	err := json.NewEncoder(buf).Encode(token) //nolint:gosec // persisting the token to disk is the intent
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrOAuthTokenEncode, err)
 	}
 
-	if err = maybe.WriteFile(tokenPath, buf.Bytes(), DefaultPerms); err != nil {
+	err = maybe.WriteFile(tokenPath, buf.Bytes(), DefaultPerms)
+	if err != nil {
 		return fmt.Errorf("%w: %w", ErrOAuthTokenSave, err)
 	}
 

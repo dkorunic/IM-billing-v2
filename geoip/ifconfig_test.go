@@ -17,6 +17,8 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
+	t.Parallel()
+
 	client, err := geoip.NewClient()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -36,7 +38,9 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestGetResponse_Success(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"ip":"1.2.3.4","country":"Croatia","country_iso":"HR","city":"Zagreb","hostname":"host.example.com"}`))
 	}))
@@ -64,9 +68,11 @@ func TestGetResponse_Success(t *testing.T) {
 }
 
 func TestGetResponse_HTTPError(t *testing.T) {
+	t.Parallel()
+
 	const errBody = "service unavailable"
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		_, _ = w.Write([]byte(errBody))
 	}))
@@ -86,7 +92,9 @@ func TestGetResponse_HTTPError(t *testing.T) {
 }
 
 func TestGetResponse_InvalidJSON(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`{invalid json`))
 	}))
 	defer srv.Close()
@@ -101,7 +109,9 @@ func TestGetResponse_InvalidJSON(t *testing.T) {
 }
 
 func TestGetResponse_ContextCancelled(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
@@ -121,6 +131,8 @@ func TestGetResponse_ContextCancelled(t *testing.T) {
 // TC-11: GetResponse must return context.Canceled when the context is cancelled,
 // not a generic transport-level error.
 func TestGetResponse_CancelledContextReturnsContextError(t *testing.T) {
+	t.Parallel()
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))

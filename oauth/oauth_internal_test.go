@@ -17,23 +17,31 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	testTokenType    = "Bearer"
+	testRefreshToken = "test-refresh-token"
+)
+
 func TestTokenFromFile_Valid(t *testing.T) {
+	t.Parallel()
+
 	expiry := time.Date(2099, 1, 1, 0, 0, 0, 0, time.UTC)
 	original := &oauth2.Token{
 		AccessToken:  "test-access-token",
-		TokenType:    "Bearer",
-		RefreshToken: "test-refresh-token",
+		TokenType:    testTokenType,
+		RefreshToken: testRefreshToken,
 		Expiry:       expiry,
 	}
 
 	path := filepath.Join(t.TempDir(), "token.json")
 
-	data, err := json.Marshal(original)
+	data, err := json.Marshal(original) //nolint:gosec // test fixture token
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
 
-	if err = os.WriteFile(path, data, DefaultPerms); err != nil {
+	err = os.WriteFile(path, data, DefaultPerms)
+	if err != nil {
 		t.Fatalf("write: %v", err)
 	}
 
@@ -56,6 +64,8 @@ func TestTokenFromFile_Valid(t *testing.T) {
 }
 
 func TestTokenFromFile_NotFound(t *testing.T) {
+	t.Parallel()
+
 	_, err := tokenFromFile(filepath.Join(t.TempDir(), "nonexistent.json"))
 	if err == nil {
 		t.Fatal("expected error for missing file, got nil")
@@ -63,30 +73,36 @@ func TestTokenFromFile_NotFound(t *testing.T) {
 }
 
 func TestTokenFromFile_InvalidJSON(t *testing.T) {
+	t.Parallel()
+
 	path := filepath.Join(t.TempDir(), "bad.json")
 
-	if err := os.WriteFile(path, []byte(`{invalid json`), DefaultPerms); err != nil {
+	err := os.WriteFile(path, []byte(`{invalid json`), DefaultPerms)
+	if err != nil {
 		t.Fatalf("write: %v", err)
 	}
 
-	_, err := tokenFromFile(path)
+	_, err = tokenFromFile(path)
 	if err == nil {
 		t.Fatal("expected error for invalid JSON, got nil")
 	}
 }
 
 func TestSaveToken_Valid(t *testing.T) {
+	t.Parallel()
+
 	expiry := time.Date(2099, 6, 15, 12, 0, 0, 0, time.UTC)
 	tok := &oauth2.Token{
 		AccessToken:  "save-access-token",
-		TokenType:    "Bearer",
+		TokenType:    testTokenType,
 		RefreshToken: "save-refresh-token",
 		Expiry:       expiry,
 	}
 
 	path := filepath.Join(t.TempDir(), "token.json")
 
-	if err := saveToken(path, tok); err != nil {
+	err := saveToken(path, tok)
+	if err != nil {
 		t.Fatalf("saveToken: %v", err)
 	}
 
@@ -97,7 +113,8 @@ func TestSaveToken_Valid(t *testing.T) {
 
 	var got oauth2.Token
 
-	if err = json.Unmarshal(data, &got); err != nil {
+	err = json.Unmarshal(data, &got)
+	if err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 	}
 
@@ -112,6 +129,8 @@ func TestSaveToken_Valid(t *testing.T) {
 
 // TC-14: an expired token must trigger a refresh attempt via the token endpoint.
 func TestGetClient_ExpiredTokenIsRefreshed(t *testing.T) {
+	t.Parallel()
+
 	const newAccessToken = "refreshed-access-token"
 
 	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -130,13 +149,15 @@ func TestGetClient_ExpiredTokenIsRefreshed(t *testing.T) {
 
 	expiredTok := &oauth2.Token{
 		AccessToken:  "old-access-token",
-		RefreshToken: "test-refresh-token",
-		TokenType:    "Bearer",
+		RefreshToken: testRefreshToken,
+		TokenType:    testTokenType,
 		Expiry:       time.Now().Add(-time.Hour),
 	}
 
 	tokenPath := filepath.Join(t.TempDir(), "token.json")
-	if err := saveToken(tokenPath, expiredTok); err != nil {
+
+	err := saveToken(tokenPath, expiredTok)
+	if err != nil {
 		t.Fatalf("saveToken: %v", err)
 	}
 
@@ -153,6 +174,8 @@ func TestGetClient_ExpiredTokenIsRefreshed(t *testing.T) {
 // TC-15: after a successful token refresh that returns a different access token,
 // the new token must be persisted to the token file.
 func TestGetClient_RefreshedTokenSavedToFile(t *testing.T) {
+	t.Parallel()
+
 	const newAccessToken = "saved-refreshed-token"
 
 	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -171,17 +194,20 @@ func TestGetClient_RefreshedTokenSavedToFile(t *testing.T) {
 
 	expiredTok := &oauth2.Token{
 		AccessToken:  "old-token-before-refresh",
-		RefreshToken: "test-refresh-token",
-		TokenType:    "Bearer",
+		RefreshToken: testRefreshToken,
+		TokenType:    testTokenType,
 		Expiry:       time.Now().Add(-time.Hour),
 	}
 
 	tokenPath := filepath.Join(t.TempDir(), "token.json")
-	if err := saveToken(tokenPath, expiredTok); err != nil {
+
+	err := saveToken(tokenPath, expiredTok)
+	if err != nil {
 		t.Fatalf("saveToken: %v", err)
 	}
 
-	if _, err := GetClient(context.Background(), config, tokenPath); err != nil {
+	_, err = GetClient(context.Background(), config, tokenPath)
+	if err != nil {
 		t.Fatalf("GetClient: %v", err)
 	}
 
@@ -196,16 +222,19 @@ func TestGetClient_RefreshedTokenSavedToFile(t *testing.T) {
 }
 
 func TestSaveToken_RoundTrip(t *testing.T) {
+	t.Parallel()
+
 	original := &oauth2.Token{
 		AccessToken:  "rt-access",
-		TokenType:    "Bearer",
+		TokenType:    testTokenType,
 		RefreshToken: "rt-refresh",
 		Expiry:       time.Date(2099, 12, 31, 23, 59, 59, 0, time.UTC),
 	}
 
 	path := filepath.Join(t.TempDir(), "roundtrip.json")
 
-	if err := saveToken(path, original); err != nil {
+	err := saveToken(path, original)
+	if err != nil {
 		t.Fatalf("saveToken: %v", err)
 	}
 

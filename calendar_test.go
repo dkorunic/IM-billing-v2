@@ -25,6 +25,8 @@ func descBuilder(s string) *strings.Builder {
 }
 
 func TestParseCalendarEvent_NewEvent(t *testing.T) {
+	t.Parallel()
+
 	eventMap := make(map[string]workEvent)
 
 	result := parseCalendarEvent(
@@ -54,6 +56,8 @@ func TestParseCalendarEvent_NewEvent(t *testing.T) {
 }
 
 func TestParseCalendarEvent_AccumulateSameDay(t *testing.T) {
+	t.Parallel()
+
 	eventMap := make(map[string]workEvent)
 
 	eventMap = parseCalendarEvent("Morning", "2024-01-15T09:00:00+00:00", "2024-01-15T13:00:00+00:00", time.UTC, eventMap)
@@ -76,6 +80,8 @@ func TestParseCalendarEvent_AccumulateSameDay(t *testing.T) {
 }
 
 func TestParseCalendarEvent_DifferentDays(t *testing.T) {
+	t.Parallel()
+
 	eventMap := make(map[string]workEvent)
 
 	eventMap = parseCalendarEvent("Day1", "2024-01-15T09:00:00+00:00", "2024-01-15T17:00:00+00:00", time.UTC, eventMap)
@@ -95,6 +101,8 @@ func TestParseCalendarEvent_DifferentDays(t *testing.T) {
 }
 
 func TestParseCalendarEvent_InvalidStart(t *testing.T) {
+	t.Parallel()
+
 	eventMap := make(map[string]workEvent)
 
 	result := parseCalendarEvent("Work", "not-a-date", "2024-01-15T17:00:00+00:00", time.UTC, eventMap)
@@ -105,6 +113,8 @@ func TestParseCalendarEvent_InvalidStart(t *testing.T) {
 }
 
 func TestParseCalendarEvent_InvalidEnd(t *testing.T) {
+	t.Parallel()
+
 	eventMap := make(map[string]workEvent)
 
 	result := parseCalendarEvent("Work", "2024-01-15T09:00:00+00:00", "not-a-date", time.UTC, eventMap)
@@ -115,6 +125,8 @@ func TestParseCalendarEvent_InvalidEnd(t *testing.T) {
 }
 
 func TestParseCalendarEvent_HourRounding(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		end       string
@@ -132,6 +144,8 @@ func TestParseCalendarEvent_HourRounding(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			eventMap := make(map[string]workEvent)
 
 			result := parseCalendarEvent("Work", roundingStart, tc.end, time.UTC, eventMap)
@@ -151,6 +165,8 @@ func TestParseCalendarEvent_HourRounding(t *testing.T) {
 // TC-03: map key must come from start time, not end time.
 // An event crossing midnight must be bucketed under the start date.
 func TestParseCalendarEvent_DateKeyFromStartNotEnd(t *testing.T) {
+	t.Parallel()
+
 	eventMap := make(map[string]workEvent)
 
 	result := parseCalendarEvent(
@@ -171,6 +187,8 @@ func TestParseCalendarEvent_DateKeyFromStartNotEnd(t *testing.T) {
 }
 
 // TC-08: printMonthlyStats must warn only for holidays that overlap with work events.
+//
+//nolint:paralleltest // mutates package globals and os.Stdout
 func TestPrintMonthlyStats_HolidayOverlapDetection(t *testing.T) {
 	origCalendarName := calendarName
 	origDashFlag := dashFlag
@@ -213,10 +231,13 @@ func TestPrintMonthlyStats_HolidayOverlapDetection(t *testing.T) {
 	printMonthlyStats(eventMap, holidayMap)
 
 	wPipe.Close()
+
 	os.Stdout = origStdout
 
 	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, rPipe); err != nil {
+
+	_, err = io.Copy(&buf, rPipe)
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -243,6 +264,8 @@ func TestPrintMonthlyStats_HolidayOverlapDetection(t *testing.T) {
 }
 
 func TestParseCalendarEvent_DescriptionConcatenation(t *testing.T) {
+	t.Parallel()
+
 	eventMap := make(map[string]workEvent)
 
 	eventMap = parseCalendarEvent("First", "2024-01-15T09:00:00+00:00", "2024-01-15T10:00:00+00:00", time.UTC, eventMap)
